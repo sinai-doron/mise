@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "default": "mise-recipes-f37f7",
+    "prod": "mise-prod"
+  }
+}

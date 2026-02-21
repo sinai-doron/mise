@@ -49,6 +49,14 @@ service cloud.firestore {
       match /collections/{collectionId} {
         allow read, write: if isOwner(userId);
       }
+
+      match /shoppingItems/{itemId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /purchaseHistory/{itemId} {
+        allow read, write: if isOwner(userId);
+      }
     }
 
     // ========== GLOBAL COLLECTIONS ==========
