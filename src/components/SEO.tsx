@@ -9,17 +9,17 @@ interface SEOProps {
   type?: 'website' | 'article';
 }
 
-const BASE_URL = 'https://mise.app';
+const BASE_URL = 'https://getprepd.app';
 
 export const SEO: React.FC<SEOProps> = ({
-  title = 'Mise - Recipe Manager',
-  description = 'Manage your recipes, plan meals, and create shopping lists with Mise.',
+  title = 'Prepd - Recipe Manager',
+  description = 'Manage your recipes, plan meals, and create shopping lists with Prepd.',
   canonical = '',
   ogImage = '/og-image.svg',
   keywords = 'recipe manager, meal planning, shopping list, cooking',
   type = 'website',
 }) => {
-  const fullTitle = title.includes('Mise') ? title : `${title} | Mise`;
+  const fullTitle = title.includes('Prepd') ? title : `${title} | Prepd`;
   const fullUrl = `${BASE_URL}${canonical}`;
   const fullImageUrl = ogImage.startsWith('http') ? ogImage : `${BASE_URL}${ogImage}`;
 

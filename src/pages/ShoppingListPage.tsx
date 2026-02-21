@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { SEO } from '../components/SEO';
@@ -9,7 +9,7 @@ import { QuickAddInput, CategorySection } from '../components/shopping';
 import type { ShoppingItem, IngredientCategory } from '../types/Recipe';
 import { CATEGORY_ORDER } from '../types/Recipe';
 
-// Color palette (matching Mise design)
+// Color palette (matching Prepd design)
 const colors = {
   primary: '#2C3E50',
   primaryDark: '#1a252f',
@@ -135,6 +135,33 @@ const MobileMenuButton = styled.button`
 
   @media (min-width: 768px) {
     display: none;
+  }
+`;
+
+const MobileNav = styled.nav<{ $open: boolean }>`
+  display: ${({ $open }) => ($open ? 'flex' : 'none')};
+  flex-direction: column;
+  background: ${colors.surface};
+  border-top: 1px solid rgba(44, 62, 80, 0.1);
+  padding: 8px 0;
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+`;
+
+const MobileNavLink = styled.a<{ $active?: boolean }>`
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: ${({ $active }) => ($active ? '600' : '500')};
+  color: ${({ $active }) => ($active ? colors.primary : colors.textMain)};
+  text-decoration: none;
+  cursor: pointer;
+  border-left: 3px solid ${({ $active }) => ($active ? colors.primary : 'transparent')};
+
+  &:hover {
+    background: rgba(44, 62, 80, 0.04);
+    color: ${colors.primary};
   }
 `;
 
@@ -357,6 +384,7 @@ const StatusButton = styled.button`
 export function ShoppingListPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   const shoppingItems = useRecipeStore((s) => s.shoppingItems);
   const purchaseHistory = useRecipeStore((s) => s.purchaseHistory);
@@ -430,7 +458,7 @@ export function ShoppingListPage() {
   return (
     <PageContainer>
       <SEO
-        title="Shopping List - Mise"
+        title="Shopping List - Prepd"
         description="Your grocery shopping list organized by category."
         canonical="/shopping"
         keywords="shopping list, grocery list, recipes"
@@ -442,7 +470,7 @@ export function ShoppingListPage() {
             <LogoIcon>
               <span className="material-symbols-outlined">soup_kitchen</span>
             </LogoIcon>
-            <LogoText>Mise</LogoText>
+            <LogoText>Prepd</LogoText>
           </LogoGroup>
 
           <Nav>
@@ -457,12 +485,19 @@ export function ShoppingListPage() {
           </Nav>
 
           <HeaderRight>
-            <MobileMenuButton>
-              <span className="material-symbols-outlined">menu</span>
+            <MobileMenuButton onClick={() => setIsMobileNavOpen(o => !o)}>
+              <span className="material-symbols-outlined">{isMobileNavOpen ? 'close' : 'menu'}</span>
             </MobileMenuButton>
             <UserMenu />
           </HeaderRight>
         </HeaderContent>
+        <MobileNav $open={isMobileNavOpen}>
+          <MobileNavLink onClick={() => { navigate('/recipes'); setIsMobileNavOpen(false); }}>Recipes</MobileNavLink>
+          <MobileNavLink onClick={() => { navigate('/meal-plan'); setIsMobileNavOpen(false); }}>Meal Plan</MobileNavLink>
+          <MobileNavLink $active>Shopping</MobileNavLink>
+          <MobileNavLink onClick={() => { navigate('/collections'); setIsMobileNavOpen(false); }}>Collections</MobileNavLink>
+          <MobileNavLink onClick={() => { navigate('/discover'); setIsMobileNavOpen(false); }}>Discover</MobileNavLink>
+        </MobileNav>
       </Header>
 
       <MainContent>

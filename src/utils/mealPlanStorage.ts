@@ -1,6 +1,6 @@
 import type { PlannedMeal } from '../types/MealPlan';
 
-const MEAL_PLAN_KEY = 'mise-meal-plan-v1';
+const MEAL_PLAN_KEY = 'prepd-meal-plan-v1';
 
 // Load meal plan from localStorage
 export const loadMealPlan = (): PlannedMeal[] => {

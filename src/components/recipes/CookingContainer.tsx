@@ -89,10 +89,14 @@ const Header = styled.header`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24px 32px;
+  padding: 12px 16px;
   width: 100%;
   z-index: 20;
   flex-shrink: 0;
+
+  @media (min-width: 640px) {
+    padding: 24px 32px;
+  }
 `;
 
 const LogoGroup = styled.div`
@@ -115,25 +119,33 @@ const LogoIcon = styled.div`
 
 const LogoText = styled.h1`
   font-family: 'Noto Serif', Georgia, serif;
-  font-size: 30px;
+  font-size: 24px;
   font-weight: 700;
   color: ${colors.textMain};
   margin: 0;
   letter-spacing: -0.02em;
+
+  @media (min-width: 640px) {
+    font-size: 30px;
+  }
 `;
 
 const HeaderActions = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+
+  @media (min-width: 640px) {
+    gap: 8px;
+  }
 `;
 
 const HeaderButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: white;
   border: 1px solid ${colors.slate200};
@@ -145,9 +157,18 @@ const HeaderButton = styled.button`
   }
 
   .material-symbols-outlined {
-    font-size: 24px;
+    font-size: 22px;
     color: ${colors.textMain};
     transition: transform 0.3s;
+  }
+
+  @media (min-width: 640px) {
+    width: 48px;
+    height: 48px;
+
+    .material-symbols-outlined {
+      font-size: 24px;
+    }
   }
 `;
 
@@ -170,7 +191,7 @@ const NewSessionButton = styled(HeaderButton)`
 `;
 
 const WakeLockIndicator = styled.div`
-  display: flex;
+  display: none;
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
@@ -183,6 +204,10 @@ const WakeLockIndicator = styled.div`
 
   .material-symbols-outlined {
     font-size: 16px;
+  }
+
+  @media (min-width: 640px) {
+    display: flex;
   }
 `;
 
@@ -630,11 +655,14 @@ const ActiveTimerChip = styled.div<{ $isComplete: boolean }>`
 const IngredientsButton = styled.button`
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 10px 16px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
   background: white;
   border: 1px solid ${colors.slate200};
-  border-radius: 12px;
+  border-radius: 50%;
   font-size: 14px;
   font-weight: 600;
   color: ${colors.primary};
@@ -649,6 +677,21 @@ const IngredientsButton = styled.button`
 
   .material-symbols-outlined {
     font-size: 20px;
+  }
+
+  @media (min-width: 640px) {
+    width: auto;
+    height: auto;
+    padding: 10px 16px;
+    border-radius: 12px;
+  }
+`;
+
+const IngredientsButtonLabel = styled.span`
+  display: none;
+
+  @media (min-width: 640px) {
+    display: inline;
   }
 `;
 
@@ -1070,7 +1113,7 @@ export const CookingContainer: React.FC<CookingContainerProps> = ({
           <LogoIcon>
             <span className="material-symbols-outlined">skillet</span>
           </LogoIcon>
-          <LogoText>Mise</LogoText>
+          <LogoText>Prepd</LogoText>
           {isWakeLockActive && (
             <WakeLockIndicator title={t('cooking.screenWillStayOn')}>
               <span className="material-symbols-outlined">visibility</span>
@@ -1080,9 +1123,13 @@ export const CookingContainer: React.FC<CookingContainerProps> = ({
         </LogoGroup>
         <HeaderActions>
           {scaledIngredients.length > 0 && (
-            <IngredientsButton onClick={() => setShowIngredients(true)}>
+            <IngredientsButton
+              onClick={() => setShowIngredients(true)}
+              title={t('recipe.ingredients')}
+              aria-label={t('recipe.ingredients')}
+            >
               <span className="material-symbols-outlined">shopping_basket</span>
-              {t('recipe.ingredients')}
+              <IngredientsButtonLabel>{t('recipe.ingredients')}</IngredientsButtonLabel>
             </IngredientsButton>
           )}
           {onResetSession && (

@@ -508,7 +508,7 @@ export function CollectionPage() {
             <HomeButton onClick={() => navigate('/')} title={t('common.home', 'Home')}>
               <span className="material-symbols-outlined">home</span>
             </HomeButton>
-            <NavBrand>Mise</NavBrand>
+            <NavBrand>Prepd</NavBrand>
           </NavLeft>
         </NavBar>
         <EditModeContainer>
@@ -546,7 +546,7 @@ export function CollectionPage() {
           <HomeButton onClick={() => navigate('/')} title={t('common.home', 'Home')}>
             <span className="material-symbols-outlined">home</span>
           </HomeButton>
-          <NavBrand>Mise</NavBrand>
+          <NavBrand>Prepd</NavBrand>
         </NavLeft>
       </NavBar>
 

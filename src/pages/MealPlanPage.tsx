@@ -124,6 +124,46 @@ const HeaderRight = styled.div`
   gap: 12px;
 `;
 
+const MobileMenuButton = styled.button`
+  display: flex;
+  color: ${colors.textMain};
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+`;
+
+const MobileNav = styled.nav<{ $open: boolean }>`
+  display: ${({ $open }) => ($open ? 'flex' : 'none')};
+  flex-direction: column;
+  background: ${colors.surface};
+  border-top: 1px solid rgba(44, 62, 80, 0.1);
+  padding: 8px 0;
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+`;
+
+const MobileNavLink = styled.a<{ $active?: boolean }>`
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: ${({ $active }) => ($active ? '600' : '500')};
+  color: ${({ $active }) => ($active ? colors.primary : colors.textMain)};
+  text-decoration: none;
+  cursor: pointer;
+  border-left: 3px solid ${({ $active }) => ($active ? colors.primary : 'transparent')};
+
+  &:hover {
+    background: rgba(44, 62, 80, 0.04);
+    color: ${colors.primary};
+  }
+`;
+
 const LanguageToggle = styled.div`
   display: flex;
   align-items: center;
@@ -298,6 +338,7 @@ export function MealPlanPage() {
   const [showShoppingModal, setShowShoppingModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeDragItem, setActiveDragItem] = useState<DraggedRecipe | null>(null);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   // Load data on mount
   useEffect(() => {
@@ -393,7 +434,7 @@ export function MealPlanPage() {
   return (
     <PageContainer style={{ direction: isRTL ? 'rtl' : 'ltr' }}>
       <SEO
-        title="Meal Plan - Mise"
+        title="Meal Plan - Prepd"
         description="Plan your weekly meals with our drag-and-drop meal planner."
         canonical="/meal-plan"
         keywords="meal planning, weekly meals, recipe planner"
@@ -405,7 +446,7 @@ export function MealPlanPage() {
             <LogoIcon className="logo-icon">
               <span className="material-symbols-outlined">restaurant_menu</span>
             </LogoIcon>
-            <LogoText>Mise</LogoText>
+            <LogoText>Prepd</LogoText>
           </LogoGroup>
 
           <Nav>
@@ -450,9 +491,19 @@ export function MealPlanPage() {
               <span className="material-symbols-outlined">shopping_cart</span>
               {t('mealPlan.shoppingList.generateButton')}
             </ShoppingListButton>
+            <MobileMenuButton onClick={() => setIsMobileNavOpen(o => !o)}>
+              <span className="material-symbols-outlined">{isMobileNavOpen ? 'close' : 'menu'}</span>
+            </MobileMenuButton>
             <UserMenu />
           </HeaderRight>
         </HeaderContent>
+        <MobileNav $open={isMobileNavOpen}>
+          <MobileNavLink onClick={() => { navigate('/recipes'); setIsMobileNavOpen(false); }}>{t('nav.recipes')}</MobileNavLink>
+          <MobileNavLink $active>{t('nav.mealPlan')}</MobileNavLink>
+          <MobileNavLink onClick={() => { navigate('/shopping'); setIsMobileNavOpen(false); }}>{t('nav.shopping')}</MobileNavLink>
+          <MobileNavLink onClick={() => { navigate('/collections'); setIsMobileNavOpen(false); }}>{t('nav.collections')}</MobileNavLink>
+          <MobileNavLink onClick={() => { navigate('/discover'); setIsMobileNavOpen(false); }}>{t('discover.title')}</MobileNavLink>
+        </MobileNav>
       </Header>
 
       <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>

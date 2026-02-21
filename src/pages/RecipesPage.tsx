@@ -31,6 +31,7 @@ const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
   font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow-x: hidden;
 `;
 
 const Header = styled.header`
@@ -138,6 +139,33 @@ const MobileMenuButton = styled.button`
   }
 `;
 
+const MobileNav = styled.nav<{ $open: boolean }>`
+  display: ${({ $open }) => ($open ? 'flex' : 'none')};
+  flex-direction: column;
+  background: ${colors.surface};
+  border-top: 1px solid rgba(44, 62, 80, 0.1);
+  padding: 8px 0;
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+`;
+
+const MobileNavLink = styled.a<{ $active?: boolean }>`
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: ${({ $active }) => ($active ? '600' : '500')};
+  color: ${({ $active }) => ($active ? colors.primary : colors.textMain)};
+  text-decoration: none;
+  cursor: pointer;
+  border-left: 3px solid ${({ $active }) => ($active ? colors.primary : 'transparent')};
+
+  &:hover {
+    background: rgba(44, 62, 80, 0.04);
+    color: ${colors.primary};
+  }
+`;
+
 const AddButton = styled.button`
   display: none;
   align-items: center;
@@ -240,10 +268,79 @@ const SidebarWrapper = styled.aside`
 const ContentArea = styled.div`
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
+  padding: 16px;
 
   @media (min-width: 768px) {
     padding: 32px;
+  }
+`;
+
+const SearchBar = styled.div`
+  position: relative;
+  margin-bottom: 16px;
+
+  .material-symbols-outlined {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: ${colors.textMuted};
+    font-size: 20px;
+    pointer-events: none;
+  }
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  padding: 12px 16px 12px 44px;
+  border: 1px solid rgba(44, 62, 80, 0.15);
+  border-radius: 12px;
+  font-size: 14px;
+  background: ${colors.surface};
+  box-sizing: border-box;
+  font-family: inherit;
+
+  &:focus {
+    outline: none;
+    border-color: ${colors.primary};
+    box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
+  }
+
+  &::placeholder {
+    color: ${colors.textMuted};
+  }
+`;
+
+const MobileFilterToggle = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: ${colors.surface};
+  border: 1px solid rgba(44, 62, 80, 0.15);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: ${colors.primary};
+  cursor: pointer;
+  margin-bottom: 16px;
+  width: 100%;
+  justify-content: space-between;
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+`;
+
+const MobileFilterPanel = styled.div<{ $open: boolean }>`
+  display: ${({ $open }) => ($open ? 'block' : 'none')};
+  background: ${colors.surface};
+  border: 1px solid rgba(44, 62, 80, 0.1);
+  border-radius: 12px;
+  margin-bottom: 16px;
+
+  @media (min-width: 768px) {
+    display: none;
   }
 `;
 
@@ -322,6 +419,8 @@ export function RecipesPage() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isAIImportOpen, setIsAIImportOpen] = useState(false);
   const [isKeepImportOpen, setIsKeepImportOpen] = useState(false);
@@ -342,7 +441,7 @@ export function RecipesPage() {
     };
   }, [initializeFirebaseSync, user]);
 
-  // Escape key handler - navigate back within Mise app
+  // Escape key handler - navigate back within Prepd app
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -350,7 +449,7 @@ export function RecipesPage() {
           // Go back to recipe list
           navigate('/recipes');
         }
-        // Don't navigate away from Mise on escape when viewing list
+        // Don't navigate away from Prepd on escape when viewing list
       }
     };
 
@@ -438,10 +537,13 @@ export function RecipesPage() {
   // Find selected recipe from URL param
   const selectedRecipe = recipeId ? recipes.find((r) => r.id === recipeId) : null;
 
+  const activeFilterCount = [selectedCategory, selectedTag, selectedLanguage, searchQuery, hideBuiltIn ? 'hide' : null].filter(Boolean).length;
+  const hasActiveFilters = activeFilterCount > 0;
+
   return (
     <PageContainer style={{ direction: isRTL ? 'rtl' : 'ltr' }}>
       <SEO
-        title="Mise - Recipe Manager"
+        title="Prepd - Recipe Manager"
         description="Organize your recipes with scaling, grocery lists, and step-by-step cooking mode."
         canonical="/recipes"
         keywords="recipes, cooking, meal planning, grocery list"
@@ -453,7 +555,7 @@ export function RecipesPage() {
             <LogoIcon className="logo-icon">
               <span className="material-symbols-outlined">restaurant_menu</span>
             </LogoIcon>
-            <LogoText>Mise</LogoText>
+            <LogoText>Prepd</LogoText>
           </LogoGroup>
 
           <Nav>
@@ -479,8 +581,8 @@ export function RecipesPage() {
                 עב
               </LanguageButton>
             </LanguageToggle>
-            <MobileMenuButton>
-              <span className="material-symbols-outlined">menu</span>
+            <MobileMenuButton onClick={() => setIsMobileNavOpen(o => !o)}>
+              <span className="material-symbols-outlined">{isMobileNavOpen ? 'close' : 'menu'}</span>
             </MobileMenuButton>
             <AIImportButton onClick={() => setIsKeepImportOpen(true)}>
               <span className="material-symbols-outlined">upload_file</span>
@@ -497,6 +599,13 @@ export function RecipesPage() {
             <UserMenu />
           </HeaderRight>
         </HeaderContent>
+        <MobileNav $open={isMobileNavOpen}>
+          <MobileNavLink $active={!recipeId} onClick={() => { navigate('/recipes'); setIsMobileNavOpen(false); }}>{t('nav.recipes')}</MobileNavLink>
+          <MobileNavLink onClick={() => { navigate('/meal-plan'); setIsMobileNavOpen(false); }}>{t('nav.mealPlan')}</MobileNavLink>
+          <MobileNavLink onClick={() => { navigate('/shopping'); setIsMobileNavOpen(false); }}>{t('nav.shopping')}</MobileNavLink>
+          <MobileNavLink onClick={() => { navigate('/collections'); setIsMobileNavOpen(false); }}>{t('nav.collections')}</MobileNavLink>
+          <MobileNavLink onClick={() => { navigate('/discover'); setIsMobileNavOpen(false); }}>{t('discover.title')}</MobileNavLink>
+        </MobileNav>
       </Header>
 
       <MainContent>
@@ -522,6 +631,48 @@ export function RecipesPage() {
         )}
 
         <ContentArea>
+          {!selectedRecipe && (
+            <SearchBar>
+              <span className="material-symbols-outlined">search</span>
+              <SearchInput
+                type="text"
+                placeholder={t('sidebar.searchPlaceholder')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </SearchBar>
+          )}
+          {!selectedRecipe && (
+            <>
+              <MobileFilterToggle onClick={() => setIsMobileFiltersOpen(o => !o)}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>tune</span>
+                  Filters{hasActiveFilters ? ` (${activeFilterCount})` : ''}
+                </span>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                  {isMobileFiltersOpen ? 'expand_less' : 'expand_more'}
+                </span>
+              </MobileFilterToggle>
+              <MobileFilterPanel $open={isMobileFiltersOpen}>
+                <RecipeSidebar
+                  categories={categories}
+                  tags={tags}
+                  languages={languages}
+                  selectedCategory={selectedCategory}
+                  selectedTag={selectedTag}
+                  selectedLanguage={selectedLanguage}
+                  searchQuery={searchQuery}
+                  hideBuiltIn={hideBuiltIn}
+                  onSelectCategory={setSelectedCategory}
+                  onSelectTag={setSelectedTag}
+                  onSelectLanguage={setSelectedLanguage}
+                  onSearchChange={setSearchQuery}
+                  onToggleHideBuiltIn={() => setHideBuiltIn(!hideBuiltIn)}
+                  recipeCount={filteredRecipes.length}
+                />
+              </MobileFilterPanel>
+            </>
+          )}
           {selectedRecipe ? (
             <DetailWrapper>
               <RecipeDetail

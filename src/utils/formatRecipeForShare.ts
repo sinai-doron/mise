@@ -52,7 +52,7 @@ export function formatRecipeForShare(recipe: Recipe, scale: number = 1): string 
 
   // Footer
   lines.push('');
-  lines.push(rtl ? '👨‍🍳 נשלח מ-Mise' : '👨‍🍳 Shared from Mise');
+  lines.push(rtl ? '👨‍🍳 נשלח מ-Prepd' : '👨‍🍳 Shared from Prepd');
 
   return lines.join('\n');
 }

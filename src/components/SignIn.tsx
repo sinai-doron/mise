@@ -109,7 +109,7 @@ export function SignIn() {
         <Logo>
           <span className="material-symbols-outlined">restaurant_menu</span>
         </Logo>
-        <Title>Mise</Title>
+        <Title>Prepd</Title>
         <Subtitle>Your personal recipe manager</Subtitle>
 
         <SignInButton onClick={handleSignIn} disabled={loading}>

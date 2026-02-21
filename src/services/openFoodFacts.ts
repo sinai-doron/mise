@@ -102,7 +102,7 @@ export async function searchProducts(
 
     const response = await fetch(`${OFF_BASE_URL}/cgi/search.pl?${params.toString()}`, {
       headers: {
-        'User-Agent': 'Mise Recipe App - https://github.com/mise-app',
+        'User-Agent': 'Prepd Recipe App - https://getprepd.app',
       },
     });
 
@@ -137,7 +137,7 @@ export async function getProductByBarcode(barcode: string): Promise<OFFProduct |
       `${OFF_BASE_URL}/api/v2/product/${barcode}?fields=code,product_name,product_name_he,brands,categories_tags,image_small_url,quantity`,
       {
         headers: {
-          'User-Agent': 'Mise Recipe App - https://github.com/mise-app',
+          'User-Agent': 'Prepd Recipe App - https://getprepd.app',
         },
       }
     );

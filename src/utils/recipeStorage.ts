@@ -1,12 +1,12 @@
 import type { Recipe, GroceryItem, ShoppingItem, PurchaseHistoryEntry } from '../types/Recipe';
 import type { UnitPreferences } from '../types/UnitConversion';
 
-const RECIPES_KEY = 'mise-recipes-v2';
-const GROCERY_KEY = 'mise-grocery-list-v2';
-const SERVINGS_KEY = 'mise-servings-v2';
-const UNIT_PREFS_KEY = 'mise-unit-preferences';
-const SHOPPING_ITEMS_KEY = 'mise-shopping-items-v1';
-const PURCHASE_HISTORY_KEY = 'mise-purchase-history-v1';
+const RECIPES_KEY = 'prepd-recipes-v2';
+const GROCERY_KEY = 'prepd-grocery-list-v2';
+const SERVINGS_KEY = 'prepd-servings-v2';
+const UNIT_PREFS_KEY = 'prepd-unit-preferences';
+const SHOPPING_ITEMS_KEY = 'prepd-shopping-items-v1';
+const PURCHASE_HISTORY_KEY = 'prepd-purchase-history-v1';
 
 // Load recipes from localStorage
 export const loadRecipes = (): Recipe[] => {

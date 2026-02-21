@@ -393,8 +393,8 @@ export function ProfilePage() {
   return (
     <PageContainer>
       <SEO
-        title="Profile - Mise"
-        description="Manage your Mise profile settings"
+        title="Profile - Prepd"
+        description="Manage your Prepd profile settings"
         canonical="/profile"
       />
 

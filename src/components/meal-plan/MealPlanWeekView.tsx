@@ -32,14 +32,14 @@ const WeekGrid = styled.div`
   }
 
   @media (max-width: 900px) {
-    grid-template-columns: repeat(4, minmax(150px, 1fr));
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
   }
 
   @media (max-width: 650px) {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  @media (max-width: 400px) {
+  @media (max-width: 480px) {
     grid-template-columns: 1fr;
   }
 `;

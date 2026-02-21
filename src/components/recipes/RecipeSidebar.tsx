@@ -279,13 +279,6 @@ export const RecipeSidebar: React.FC<RecipeSidebarProps> = ({
 
   return (
     <Container>
-      <SearchInput
-        type="text"
-        placeholder={t('sidebar.searchPlaceholder')}
-        value={searchQuery}
-        onChange={(e) => onSearchChange(e.target.value)}
-      />
-
       <Section>
         <SectionHeader>
           <SectionTitle>{t('sidebar.categories')}</SectionTitle>

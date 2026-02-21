@@ -127,6 +127,46 @@ const HeaderRight = styled.div`
   gap: 16px;
 `;
 
+const MobileMenuButton = styled.button`
+  display: flex;
+  color: ${colors.textMain};
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+`;
+
+const MobileNav = styled.nav<{ $open: boolean }>`
+  display: ${({ $open }) => ($open ? 'flex' : 'none')};
+  flex-direction: column;
+  background: ${colors.surface};
+  border-top: 1px solid rgba(44, 62, 80, 0.1);
+  padding: 8px 0;
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+`;
+
+const MobileNavLink = styled.a<{ $active?: boolean }>`
+  padding: 14px 24px;
+  font-size: 15px;
+  font-weight: ${({ $active }) => ($active ? '600' : '500')};
+  color: ${({ $active }) => ($active ? colors.primary : colors.textMain)};
+  text-decoration: none;
+  cursor: pointer;
+  border-left: 3px solid ${({ $active }) => ($active ? colors.primary : 'transparent')};
+
+  &:hover {
+    background: rgba(44, 62, 80, 0.04);
+    color: ${colors.primary};
+  }
+`;
+
 const LanguageToggle = styled.div`
   display: flex;
   align-items: center;
@@ -672,6 +712,7 @@ export function DiscoverPage() {
   const { user } = useAuth();
 
   const [activeTab, setActiveTab] = useState<TabType>('recipes');
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -826,7 +867,7 @@ export function DiscoverPage() {
   return (
     <PageContainer style={{ direction: isRTL ? 'rtl' : 'ltr' }}>
       <SEO
-        title={`${t('discover.title')} - Mise`}
+        title={`${t('discover.title')} - Prepd`}
         description="Browse and discover recipes and collections shared by the community."
         canonical="/discover"
         keywords="discover recipes, community recipes, public recipes, cooking"
@@ -838,7 +879,7 @@ export function DiscoverPage() {
             <LogoIcon className="logo-icon">
               <span className="material-symbols-outlined">restaurant_menu</span>
             </LogoIcon>
-            <LogoText>Mise</LogoText>
+            <LogoText>Prepd</LogoText>
           </LogoGroup>
 
           <Nav>
@@ -858,9 +899,19 @@ export function DiscoverPage() {
                 עב
               </LanguageButton>
             </LanguageToggle>
+            <MobileMenuButton onClick={() => setIsMobileNavOpen(o => !o)}>
+              <span className="material-symbols-outlined">{isMobileNavOpen ? 'close' : 'menu'}</span>
+            </MobileMenuButton>
             <UserMenu />
           </HeaderRight>
         </HeaderContent>
+        <MobileNav $open={isMobileNavOpen}>
+          <MobileNavLink onClick={() => { navigate('/recipes'); setIsMobileNavOpen(false); }}>{t('nav.recipes')}</MobileNavLink>
+          <MobileNavLink onClick={() => { navigate('/meal-plan'); setIsMobileNavOpen(false); }}>{t('nav.mealPlan')}</MobileNavLink>
+          <MobileNavLink onClick={() => { navigate('/shopping'); setIsMobileNavOpen(false); }}>{t('nav.shopping')}</MobileNavLink>
+          <MobileNavLink onClick={() => { navigate('/collections'); setIsMobileNavOpen(false); }}>{t('nav.collections')}</MobileNavLink>
+          <MobileNavLink $active>{t('discover.title')}</MobileNavLink>
+        </MobileNav>
       </Header>
 
       <HeroSection>
