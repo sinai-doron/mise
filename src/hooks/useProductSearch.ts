@@ -78,6 +78,7 @@ export function useProductSearch(options: UseProductSearchOptions = {}): UseProd
 
     // If query is too short, show only history matches
     if (!query || query.length < 2) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSuggestions([]);
       setIsLoading(false);
       return;

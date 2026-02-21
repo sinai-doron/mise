@@ -310,6 +310,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ value, onChange })
         }
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [mode]
   );
 

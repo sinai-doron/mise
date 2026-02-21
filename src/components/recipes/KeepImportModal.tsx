@@ -416,7 +416,8 @@ function escapeForJSON(text: string): string {
     .replace(/\t/g, '\\t')
     .replace(/\u2028/g, '\\u2028')
     .replace(/\u2029/g, '\\u2029')
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, (char) =>
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, (char) =>
       '\\u' + char.charCodeAt(0).toString(16).padStart(4, '0')
     );
 }
@@ -429,7 +430,8 @@ function sanitizeModelJSON(text: string): string {
     .replace(/[\u2013\u2014]/g, '-')
     .replace(/[\u2028\u2029]/g, '')
     .replace(/[\u200B-\u200D\uFEFF]/g, '')
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
 }
 
 const CONVERSION_PROMPT = `You are a recipe data converter. Convert the provided recipe into the exact JSON format specified below.

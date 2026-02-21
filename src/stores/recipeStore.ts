@@ -368,7 +368,7 @@ export const useRecipeStore = create<RecipeStore>((set, get) => ({
     if (recipe?.isBuiltIn) return;
 
     // Handle visibility update: sync isPublic for backward compatibility
-    let processedUpdates = { ...updates };
+    const processedUpdates = { ...updates };
     if (updates.visibility !== undefined) {
       processedUpdates.isPublic = isAccessible(updates.visibility);
     } else if (updates.isPublic !== undefined && updates.visibility === undefined) {

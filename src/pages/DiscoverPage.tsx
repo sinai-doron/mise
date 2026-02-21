@@ -784,12 +784,14 @@ export function DiscoverPage() {
   useEffect(() => {
     fetchRecipes(true);
     fetchCollections(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Refetch when sort changes
   useEffect(() => {
     fetchRecipes(true);
     fetchCollections(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortBy]);
 
   // Load more handlers

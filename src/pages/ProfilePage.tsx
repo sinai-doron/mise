@@ -317,6 +317,7 @@ export function ProfilePage() {
   // Sync form state with profile data
   useEffect(() => {
     if (profile) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDisplayName(profile.displayName || '');
       setBio(profile.bio || '');
       setHasChanges(false);
@@ -328,6 +329,7 @@ export function ProfilePage() {
     if (profile) {
       const nameChanged = displayName !== (profile.displayName || '');
       const bioChanged = bio !== (profile.bio || '');
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHasChanges(nameChanged || bioChanged);
     }
   }, [displayName, bio, profile]);
@@ -355,7 +357,7 @@ export function ProfilePage() {
       });
       setSuccessMessage('Profile updated successfully');
       setHasChanges(false);
-    } catch (err) {
+    } catch {
       // Error is handled by the store
     }
   };
@@ -378,7 +380,7 @@ export function ProfilePage() {
       try {
         await uploadAndSetAvatar(file);
         setSuccessMessage('Avatar updated successfully');
-      } catch (err) {
+      } catch {
         // Error is handled by the store
       }
     }

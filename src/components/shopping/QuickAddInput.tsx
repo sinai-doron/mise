@@ -327,6 +327,15 @@ interface QuickAddInputProps {
   purchaseHistory: PurchaseHistoryEntry[];
 }
 
+function formatLastPurchased(timestamp: number): string {
+  const days = Math.floor((Date.now() - timestamp) / (1000 * 60 * 60 * 24));
+  if (days === 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days}d ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  return `${Math.floor(days / 30)}mo ago`;
+}
+
 export const QuickAddInput: React.FC<QuickAddInputProps> = ({
   onAdd,
   purchaseHistory,
@@ -410,6 +419,7 @@ export const QuickAddInput: React.FC<QuickAddInputProps> = ({
   useEffect(() => {
     if (name.length >= 2 && suggestions.length === 0) {
       const detected = detectCategory(name);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCategory(detected);
     }
   }, [name, suggestions.length]);
@@ -472,14 +482,6 @@ export const QuickAddInput: React.FC<QuickAddInputProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const formatLastPurchased = (timestamp: number): string => {
-    const days = Math.floor((Date.now() - timestamp) / (1000 * 60 * 60 * 24));
-    if (days === 0) return 'today';
-    if (days === 1) return 'yesterday';
-    if (days < 7) return `${days}d ago`;
-    if (days < 30) return `${Math.floor(days / 7)}w ago`;
-    return `${Math.floor(days / 30)}mo ago`;
-  };
 
   const hasSuggestions = suggestions.length > 0 || isLoading;
 

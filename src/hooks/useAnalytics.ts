@@ -36,6 +36,7 @@ export const usePageTracking = () => {
  * Hook to track time spent on a page/feature
  */
 export const useEngagementTracking = (featureName: string) => {
+  // eslint-disable-next-line react-hooks/purity
   const startTime = useRef(Date.now());
 
   useEffect(() => {

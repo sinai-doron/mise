@@ -128,7 +128,7 @@ export const imageToBase64 = (file: File): Promise<string> => {
         try {
           const compressed = compressImage(img);
           resolve(compressed);
-        } catch (error) {
+        } catch {
           reject(new Error('Failed to compress image.'));
         }
       };
