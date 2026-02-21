@@ -39,7 +39,7 @@ substitutions:
   # Infrastructure vars — set in Cloud Build trigger config
   _AR_HOSTNAME: us-central1-docker.pkg.dev
   _AR_REPOSITORY: cloud-run-source-deploy
-  _SERVICE_NAME: mise
+  _SERVICE_NAME: getprepd
   _DEPLOY_REGION: us-central1
   # Firebase config vars — set in Cloud Build trigger config (real values, never in repo)
   _VITE_FIREBASE_API_KEY: ''
