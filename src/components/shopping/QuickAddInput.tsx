@@ -341,6 +341,7 @@ export const QuickAddInput: React.FC<QuickAddInputProps> = ({
   const [scanSuccess, setScanSuccess] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const scanCancelledRef = useRef(false);
 
   // Use the product search hook
   const { suggestions, isLoading, search, clearSuggestions } = useProductSearch({
@@ -352,21 +353,23 @@ export const QuickAddInput: React.FC<QuickAddInputProps> = ({
 
   // Handle barcode scan
   const handleBarcodeScan = useCallback(async (barcode: string) => {
+    scanCancelledRef.current = false;
     setScanProcessing(true);
 
     try {
       const product = await getProductByBarcode(barcode);
 
+      // User closed the scanner while we were fetching — do nothing
+      if (scanCancelledRef.current) return;
+
       if (product && product.product_name) {
         const productName = formatProductName(product, true);
         const productCategory = mapOFFCategoryToIngredientCategory(product.categories_tags);
 
-        // Add the product
         onAdd(productName, 1, '', productCategory);
 
         setScanSuccess(`Added: ${productName}`);
 
-        // Close scanner after showing success
         setTimeout(() => {
           setShowScanner(false);
           setScanSuccess(null);
@@ -376,18 +379,20 @@ export const QuickAddInput: React.FC<QuickAddInputProps> = ({
         // Product not found - let user enter manually
         setScanSuccess(`Barcode ${barcode} not found. Enter manually.`);
         setTimeout(() => {
+          if (scanCancelledRef.current) return;
           setShowScanner(false);
           setScanSuccess(null);
           setScanProcessing(false);
-          // Pre-fill the barcode in the input
           setName(barcode);
           inputRef.current?.focus();
         }, 2000);
       }
     } catch (error) {
       console.error('Barcode lookup error:', error);
+      if (scanCancelledRef.current) return;
       setScanSuccess('Lookup failed. Try again.');
       setTimeout(() => {
+        if (scanCancelledRef.current) return;
         setScanProcessing(false);
         setScanSuccess(null);
       }, 2000);
@@ -395,6 +400,7 @@ export const QuickAddInput: React.FC<QuickAddInputProps> = ({
   }, [onAdd]);
 
   const handleCloseScanner = useCallback(() => {
+    scanCancelledRef.current = true;
     setShowScanner(false);
     setScanProcessing(false);
     setScanSuccess(null);

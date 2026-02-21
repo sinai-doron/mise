@@ -230,6 +230,28 @@ const LoadingState = styled.div`
   }
 `;
 
+const CancelButton = styled.button`
+  margin-top: 8px;
+  padding: 12px 32px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  background: transparent;
+  color: white;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.7);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+`;
+
 const SuccessState = styled.div`
   display: flex;
   flex-direction: column;
@@ -418,6 +440,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           <LoadingState>
             <span className="material-symbols-outlined">hourglass_empty</span>
             <p>Looking up product...</p>
+            <CancelButton onClick={onClose}>Cancel</CancelButton>
           </LoadingState>
         ) : successMessage ? (
           <SuccessState>
