@@ -16,27 +16,6 @@ const Container = styled.div`
   padding: 20px;
 `;
 
-const SearchInput = styled.input`
-  width: 100%;
-  padding: 12px 16px;
-  border: 1px solid rgba(44, 62, 80, 0.15);
-  border-radius: 10px;
-  font-size: 14px;
-  margin-bottom: 24px;
-  background: ${colors.backgroundLight};
-  transition: all 0.15s;
-
-  &:focus {
-    outline: none;
-    border-color: ${colors.primary};
-    background: ${colors.surface};
-    box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.1);
-  }
-
-  &::placeholder {
-    color: ${colors.textMuted};
-  }
-`;
 
 const Section = styled.div`
   margin-bottom: 28px;
