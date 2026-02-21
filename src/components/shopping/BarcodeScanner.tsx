@@ -68,12 +68,18 @@ const ScannerViewport = styled.div`
   & > div {
     width: 100% !important;
     height: 100% !important;
+    border: none !important;
   }
 
   video {
     width: 100% !important;
     height: 100% !important;
     object-fit: cover !important;
+  }
+
+  /* Hide Html5Qrcode's built-in shaded overlay and qrbox indicator */
+  #qr-shaded-region {
+    display: none !important;
   }
 `;
 
