@@ -78,13 +78,14 @@ function escapeHtml(text: string): string {
 function generateOgTags(data: {
   title: string;
   description: string;
+  url?: string;
   image?: string;
   type?: string;
 }): string {
   const title = escapeHtml(data.title);
   const description = escapeHtml(data.description);
   const image = data.image || '';
-  const siteName = 'Mise - Recipe Manager';
+  const siteName = 'Prepd - Recipe Manager';
   const type = data.type || 'article';
 
   return `
@@ -93,6 +94,7 @@ function generateOgTags(data: {
     <meta property="og:title" content="${title}" />
     <meta property="og:description" content="${description}" />
     <meta property="og:site_name" content="${siteName}" />
+    ${data.url ? `<meta property="og:url" content="${escapeHtml(data.url)}" />` : ''}
     ${image ? `<meta property="og:image" content="${escapeHtml(image)}" />` : ''}
 
     <!-- Twitter -->
@@ -103,7 +105,6 @@ function generateOgTags(data: {
 
     <!-- Meta -->
     <meta name="description" content="${description}" />
-    <title>${title} | Mise</title>
   `;
 }
 
@@ -137,6 +138,7 @@ app.get('/recipe/:shareId', async (req, res) => {
         const ogTags = generateOgTags({
           title: recipe.title,
           description: recipe.description,
+          url: `https://getprepd.app/recipe/${shareId}`,
           image: recipe.image,
           type: 'article',
         });
@@ -147,7 +149,7 @@ app.get('/recipe/:shareId', async (req, res) => {
         // Update the title
         html = html.replace(
           /<title>.*?<\/title>/,
-          `<title>${escapeHtml(recipe.title)} | Mise</title>`
+          `<title>${escapeHtml(recipe.title)} | Prepd</title>`
         );
 
         res.send(html);
@@ -179,7 +181,12 @@ app.get('/u/:collectionId', async (req, res) => {
     if (docSnap.exists) {
       const collection = docSnap.data();
 
-      if (collection && collection.isPublic) {
+      const isAccessible = collection && (
+        collection.isPublic === true ||
+        collection.visibility === 'public' ||
+        collection.visibility === 'unlisted'
+      );
+      if (isAccessible) {
         // Read the index.html template
         const indexPath = join(DIST_DIR, 'index.html');
         let html = readFileSync(indexPath, 'utf-8');
@@ -193,6 +200,7 @@ app.get('/u/:collectionId', async (req, res) => {
         const ogTags = generateOgTags({
           title,
           description,
+          url: `https://getprepd.app/u/${collectionId}`,
           image: collection.coverImage,
           type: 'profile',
         });
@@ -203,7 +211,7 @@ app.get('/u/:collectionId', async (req, res) => {
         // Update the title
         html = html.replace(
           /<title>.*?<\/title>/,
-          `<title>${escapeHtml(title)} | Mise</title>`
+          `<title>${escapeHtml(title)} | Prepd</title>`
         );
 
         res.send(html);
