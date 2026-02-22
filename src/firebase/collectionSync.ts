@@ -5,7 +5,7 @@ import {
   getGlobalDocument,
   setGlobalDocument,
 } from './firestore';
-import { doc, increment, updateDoc, deleteDoc, collection, query, where, getDocs, onSnapshot, getDoc, documentId } from 'firebase/firestore';
+import { doc, increment, updateDoc, deleteDoc, collection, query, where, getDocs, onSnapshot, getDoc } from 'firebase/firestore';
 import { db } from './config';
 import { getUserId } from './auth';
 import { generateShareId } from '../utils/shareUtils';
@@ -344,17 +344,18 @@ export const getCollectionRecipes = async (
 
   for (let i = 0; i < recipeIds.length; i += BATCH_SIZE) {
     const chunk = recipeIds.slice(i, i + BATCH_SIZE);
-    const q = query(
-      collection(db, 'accessibleRecipes'),
-      where(documentId(), 'in', chunk)
-    );
-    const snapshot = await getDocs(q);
 
-    // Fetch full recipe data for each index entry
-    const fullRecipePromises = snapshot.docs.map(async (indexDoc) => {
-      const indexData = indexDoc.data();
+    // Use individual getDoc calls (not a query) so unauthenticated users can access
+    // public collections — Firestore rules allow `get` on accessibleRecipes for all,
+    // but require auth for list/query operations.
+    const fullRecipePromises = chunk.map(async (recipeId) => {
+      const indexDocRef = doc(db, 'accessibleRecipes', recipeId);
+      const indexSnap = await getDoc(indexDocRef);
+      if (!indexSnap.exists()) return null;
+
+      const indexData = indexSnap.data();
       // Fetch from owner's collection
-      const recipeDocRef = doc(db, `users/${indexData.ownerId}/recipes/${indexDoc.id}`);
+      const recipeDocRef = doc(db, `users/${indexData.ownerId}/recipes/${recipeId}`);
       const recipeSnap = await getDoc(recipeDocRef);
       if (!recipeSnap.exists()) return null;
       return { id: recipeSnap.id, ...recipeSnap.data() } as Recipe;
