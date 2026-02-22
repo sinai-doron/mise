@@ -5,7 +5,7 @@ import { SEO } from '../components/SEO';
 import { useRecipeStore } from '../stores/recipeStore';
 import { useAuth } from '../firebase';
 import { UserMenu } from '../components/UserMenu';
-import { QuickAddInput, CategorySection } from '../components/shopping';
+import { QuickAddInput, CategorySection, FrequentlyBoughtPanel } from '../components/shopping';
 import type { ShoppingItem, IngredientCategory } from '../types/Recipe';
 import { CATEGORY_ORDER } from '../types/Recipe';
 
@@ -526,6 +526,12 @@ export function ShoppingListPage() {
         <QuickAddContainer>
           <QuickAddInput onAdd={addManualItem} purchaseHistory={purchaseHistory} />
         </QuickAddContainer>
+
+        <FrequentlyBoughtPanel
+          purchaseHistory={purchaseHistory}
+          shoppingItems={shoppingItems}
+          onAdd={addManualItem}
+        />
 
         {!hasInitialized || isLoading ? (
           <LoadingState>

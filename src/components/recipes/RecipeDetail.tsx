@@ -49,11 +49,9 @@ const Container = styled.div<{ $rtl?: boolean }>`
 
 const HeroSection = styled.div`
   position: relative;
-  width: 100vw;
+  width: 100%;
   height: 350px;
   overflow: hidden;
-  margin-left: calc(-50vw + 50%);
-  margin-right: calc(-50vw + 50%);
 
   @media (min-width: 768px) {
     height: 450px;

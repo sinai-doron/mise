@@ -4,3 +4,4 @@ export { CategorySection } from './CategorySection';
 export { ItemSourceBadges } from './ItemSourceBadges';
 export { QuantityControl } from './QuantityControl';
 export { BarcodeScanner } from './BarcodeScanner';
+export { FrequentlyBoughtPanel } from './FrequentlyBoughtPanel';
