@@ -96,6 +96,13 @@ interface ShoppingListStore {
   clearPurchasedItems: () => void;
   clearShoppingList: () => void;
 
+  // Cost splitting
+  enableCostSplitting: (listId: string, enabled: boolean) => Promise<void>;
+  setListCurrency: (listId: string, currencyCode: string) => Promise<void>;
+  setItemPrice: (itemId: string, price: number) => void;
+  settleUp: () => Promise<void>;
+  getCostSummary: () => { perMember: Record<string, number>; total: number; debts: Array<{ from: string; to: string; amount: number }> };
+
   // Internal
   _subscribeToActiveList: (listId: string) => void;
 
@@ -124,6 +131,9 @@ export const useShoppingListStore = create<ShoppingListStore>((set, get) => ({
   initialize: async () => {
     console.log('[ShoppingListStore] initialize called, isSignedIn:', isSignedIn());
     if (!isSignedIn()) return;
+
+    // Cleanup existing subscriptions before re-initializing (prevents duplicates from StrictMode)
+    get().cleanupSubscriptions();
 
     set({ isLoadingLists: true, lastSyncError: null });
 
@@ -661,7 +671,15 @@ export const useShoppingListStore = create<ShoppingListStore>((set, get) => ({
     if (!item) return;
 
     const newBoughtState = !item.bought;
-    const updatedItem: CollaborativeShoppingItem = { ...item, bought: newBoughtState, updatedAt: Date.now() };
+    const updatedItem: CollaborativeShoppingItem = {
+      ...item,
+      bought: newBoughtState,
+      updatedAt: Date.now(),
+      // Auto-set boughtBy when checking off; clear boughtBy and price when unchecking
+      ...(newBoughtState
+        ? { boughtBy: item.boughtBy || getUserId() }
+        : { boughtBy: undefined, price: undefined }),
+    };
 
     set({
       activeListItems: state.activeListItems.map((i) => (i.id === itemId ? updatedItem : i)),
@@ -743,6 +761,117 @@ export const useShoppingListStore = create<ShoppingListStore>((set, get) => ({
         console.error('Failed to clear shopping list:', error);
         set({ isSyncing: false, lastSyncError: error.message });
       });
+  },
+
+  // Cost splitting
+  enableCostSplitting: async (listId, enabled) => {
+    await updateShoppingList(listId, { costSplittingEnabled: enabled });
+    set({
+      lists: get().lists.map((l) =>
+        l.id === listId ? { ...l, costSplittingEnabled: enabled } : l
+      ),
+    });
+  },
+
+  setListCurrency: async (listId, currencyCode) => {
+    await updateShoppingList(listId, { currency: currencyCode });
+    set({
+      lists: get().lists.map((l) =>
+        l.id === listId ? { ...l, currency: currencyCode } : l
+      ),
+    });
+  },
+
+  setItemPrice: (itemId, price) => {
+    const state = get();
+    const listId = state.activeListId;
+    if (!listId) return;
+
+    const item = state.activeListItems.find((i) => i.id === itemId);
+    if (!item) return;
+
+    const updatedItem: CollaborativeShoppingItem = { ...item, price, updatedAt: Date.now() };
+    set({
+      activeListItems: state.activeListItems.map((i) => (i.id === itemId ? updatedItem : i)),
+      isSyncing: true,
+    });
+    saveShoppingListItem(listId, updatedItem)
+      .then(() => set({ isSyncing: false }))
+      .catch((error) => {
+        console.error('Failed to save item price:', error);
+        set({ isSyncing: false, lastSyncError: error.message });
+      });
+  },
+
+  settleUp: async () => {
+    const state = get();
+    const listId = state.activeListId;
+    if (!listId) return;
+
+    // Remove all bought items that have prices (same as clearing purchased)
+    set({
+      activeListItems: state.activeListItems.filter((item) => !(item.bought && item.price != null)),
+      isSyncing: true,
+    });
+    try {
+      // Delete items that had prices set (they are settled)
+      const pricedBoughtItems = state.activeListItems.filter((item) => item.bought && item.price != null);
+      for (const item of pricedBoughtItems) {
+        await deleteShoppingListItem(listId, item.id);
+      }
+      set({ isSyncing: false });
+    } catch (error) {
+      console.error('Failed to settle up:', error);
+      set({ isSyncing: false, lastSyncError: (error as Error).message });
+    }
+  },
+
+  getCostSummary: () => {
+    const state = get();
+    const pricedItems = state.activeListItems.filter((i) => i.bought && i.price != null && i.boughtBy);
+    const activeList = state.lists.find((l) => l.id === state.activeListId);
+    const memberCount = activeList ? activeList.memberIds.length : 1;
+
+    // Sum per member
+    const perMember: Record<string, number> = {};
+    let total = 0;
+    for (const item of pricedItems) {
+      const uid = item.boughtBy!;
+      perMember[uid] = (perMember[uid] || 0) + item.price!;
+      total += item.price!;
+    }
+
+    // Calculate debts using min-transactions algorithm
+    const fairShare = total / memberCount;
+    // balances: positive = overpaid (is owed), negative = underpaid (owes)
+    const allMemberIds = activeList?.memberIds || [];
+    const balances: Array<{ uid: string; balance: number }> = allMemberIds.map((uid) => ({
+      uid,
+      balance: (perMember[uid] || 0) - fairShare,
+    }));
+
+    const debts: Array<{ from: string; to: string; amount: number }> = [];
+    const sorted = [...balances].sort((a, b) => a.balance - b.balance);
+
+    let i = 0; // most negative (owes most)
+    let j = sorted.length - 1; // most positive (owed most)
+    while (i < j) {
+      const debtor = sorted[i];
+      const creditor = sorted[j];
+      if (Math.abs(debtor.balance) < 0.01) { i++; continue; }
+      if (Math.abs(creditor.balance) < 0.01) { j--; continue; }
+
+      const amount = Math.min(Math.abs(debtor.balance), creditor.balance);
+      if (amount >= 0.01) {
+        debts.push({ from: debtor.uid, to: creditor.uid, amount: Math.round(amount * 100) / 100 });
+      }
+      debtor.balance += amount;
+      creditor.balance -= amount;
+      if (Math.abs(debtor.balance) < 0.01) i++;
+      if (Math.abs(creditor.balance) < 0.01) j--;
+    }
+
+    return { perMember, total, debts };
   },
 
   // Helpers

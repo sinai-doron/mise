@@ -7,8 +7,10 @@ import { useShoppingListStore } from '../stores/shoppingListStore';
 import { useAuth } from '../firebase';
 import { UserMenu } from '../components/UserMenu';
 import { QuickAddInput, CategorySection, FrequentlyBoughtPanel, ListSwitcher, ListSettingsPanel, PresenceAvatars } from '../components/shopping';
+import { CostSplitBalanceView } from '../components/shopping/CostSplitBalanceView';
 import type { ShoppingItem, IngredientCategory } from '../types/Recipe';
 import { CATEGORY_ORDER } from '../types/Recipe';
+import { getCurrencyConfig, formatPrice } from '../types/ShoppingList';
 
 // Color palette (matching Prepd design)
 const colors = {
@@ -382,11 +384,82 @@ const StatusButton = styled.button`
   }
 `;
 
+const CostSummaryBar = styled.div`
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 20px -2px rgba(44, 62, 80, 0.08);
+  border: 1px solid rgba(44, 62, 80, 0.08);
+`;
+
+const CostTotalGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const CostIcon = styled.div`
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #059669;
+
+  .material-symbols-outlined {
+    font-size: 22px;
+  }
+`;
+
+const CostLabel = styled.span`
+  font-size: 13px;
+  color: ${colors.textMuted};
+  display: block;
+`;
+
+const CostAmount = styled.span`
+  font-size: 20px;
+  font-weight: 700;
+  color: #059669;
+`;
+
+const SettleUpButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: ${colors.primary};
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  &:hover {
+    background: ${colors.primaryDark};
+  }
+
+  .material-symbols-outlined {
+    font-size: 18px;
+  }
+`;
+
 export function ShoppingListPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showSettleUp, setShowSettleUp] = useState(false);
+  const [hideDone, setHideDone] = useState(false);
 
   // Recipe store — still needed for general Firebase init (recipes, etc.)
   const isLoading = useRecipeStore((s) => s.isLoading);
@@ -402,12 +475,19 @@ export function ShoppingListPage() {
   const toggleShoppingItem = useShoppingListStore((s) => s.toggleShoppingItem);
   const updateShoppingItemQuantity = useShoppingListStore((s) => s.updateShoppingItemQuantity);
   const deleteShoppingItem = useShoppingListStore((s) => s.deleteShoppingItem);
-  const clearPurchasedItems = useShoppingListStore((s) => s.clearPurchasedItems);
   const clearShoppingList = useShoppingListStore((s) => s.clearShoppingList);
+  const setItemPrice = useShoppingListStore((s) => s.setItemPrice);
+  const getCostSummary = useShoppingListStore((s) => s.getCostSummary);
   const initializeShoppingLists = useShoppingListStore((s) => s.initialize);
   const cleanupShoppingLists = useShoppingListStore((s) => s.cleanupSubscriptions);
-  const getActiveList = useShoppingListStore((s) => s.getActiveList);
-  const activeList = getActiveList();
+  const lists = useShoppingListStore((s) => s.lists);
+  const activeListId = useShoppingListStore((s) => s.activeListId);
+  const activeList = lists.find((l) => l.id === activeListId) || null;
+
+  // Cost splitting state
+  const costSplittingEnabled = !!activeList?.costSplittingEnabled;
+  const currencyConfig = getCurrencyConfig(activeList?.currency);
+  const costSummary = costSplittingEnabled ? getCostSummary() : null;
 
   // Initialize Firebase sync on mount (recipe store)
   useEffect(() => {
@@ -434,8 +514,9 @@ export function ShoppingListPage() {
     };
   }, [user, initializeShoppingLists, cleanupShoppingLists]);
 
-  // Group items by category
+  // Group items by category (filter out bought items when hideDone is active)
   const groupedItems = useMemo(() => {
+    const displayItems = hideDone ? shoppingItems.filter((i) => !i.bought) : shoppingItems;
     const groups: Record<IngredientCategory, ShoppingItem[]> = {
       produce: [],
       dairy: [],
@@ -452,7 +533,7 @@ export function ShoppingListPage() {
       other: [],
     };
 
-    shoppingItems.forEach((item) => {
+    displayItems.forEach((item) => {
       groups[item.category].push(item);
     });
 
@@ -461,7 +542,7 @@ export function ShoppingListPage() {
       category: cat,
       items: groups[cat],
     }));
-  }, [shoppingItems]);
+  }, [shoppingItems, hideDone]);
 
   // Calculate stats
   const totalItems = shoppingItems.length;
@@ -529,9 +610,9 @@ export function ShoppingListPage() {
               </ActionButton>
             )}
             {boughtItems > 0 && (
-              <ActionButton onClick={clearPurchasedItems}>
-                <span className="material-symbols-outlined">done_all</span>
-                Clear Done
+              <ActionButton onClick={() => setHideDone((h) => !h)}>
+                <span className="material-symbols-outlined">{hideDone ? 'visibility' : 'visibility_off'}</span>
+                {hideDone ? 'Show Done' : 'Hide Done'}
               </ActionButton>
             )}
             {totalItems > 0 && (
@@ -580,25 +661,63 @@ export function ShoppingListPage() {
                 onQuantityChange={updateShoppingItemQuantity}
                 onDeleteItem={deleteShoppingItem}
                 members={activeList && activeList.memberIds.length > 1 ? activeList.members : undefined}
+                costSplittingEnabled={costSplittingEnabled}
+                currency={currencyConfig}
+                onPriceSet={costSplittingEnabled ? (itemId, price) => setItemPrice(itemId, price) : undefined}
               />
             ))}
           </CategoryList>
+        )}
+
+        {costSplittingEnabled && costSummary && costSummary.total > 0 && (
+          <CostSummaryBar>
+            <CostTotalGroup>
+              <CostIcon>
+                <span className="material-symbols-outlined">receipt_long</span>
+              </CostIcon>
+              <div>
+                <CostLabel>Total Spent</CostLabel>
+                <CostAmount>{formatPrice(costSummary.total, activeList?.currency)}</CostAmount>
+              </div>
+            </CostTotalGroup>
+            <SettleUpButton onClick={() => setShowSettleUp(true)}>
+              <span className="material-symbols-outlined">handshake</span>
+              Settle Up
+            </SettleUpButton>
+          </CostSummaryBar>
         )}
       </MainContent>
 
       {totalItems > 0 && (
         <BottomStatusBar>
-          <StatusText>
-            {boughtItems} of {totalItems} items
-          </StatusText>
-          {boughtItems > 0 && (
-            <StatusButton onClick={clearPurchasedItems}>Clear done</StatusButton>
+          {costSplittingEnabled && costSummary && costSummary.total > 0 ? (
+            <>
+              <StatusText>
+                Total: {formatPrice(costSummary.total, activeList?.currency)}
+              </StatusText>
+              <StatusButton onClick={() => setShowSettleUp(true)}>Settle Up</StatusButton>
+            </>
+          ) : (
+            <>
+              <StatusText>
+                {boughtItems} of {totalItems} items
+              </StatusText>
+              {boughtItems > 0 && (
+                <StatusButton onClick={() => setHideDone((h) => !h)}>
+                  {hideDone ? 'Show done' : 'Hide done'}
+                </StatusButton>
+              )}
+            </>
           )}
         </BottomStatusBar>
       )}
 
       {showSettings && activeList && (
         <ListSettingsPanel list={activeList} onClose={() => setShowSettings(false)} />
+      )}
+
+      {showSettleUp && (
+        <CostSplitBalanceView onClose={() => setShowSettleUp(false)} />
       )}
     </PageContainer>
   );

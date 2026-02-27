@@ -127,7 +127,7 @@ export const getUserShoppingLists = async (): Promise<ShoppingList[]> => {
 // Update shopping list metadata (owner only)
 export const updateShoppingList = async (
   listId: string,
-  updates: Partial<Pick<ShoppingList, 'name'>>
+  updates: Partial<Pick<ShoppingList, 'name' | 'costSplittingEnabled' | 'currency'>>
 ): Promise<void> => {
   const docRef = doc(db, SHOPPING_LISTS_COLLECTION, listId);
   await updateDoc(docRef, removeUndefined({ ...updates, updatedAt: Date.now() }));

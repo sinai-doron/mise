@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import type { ShoppingItem, IngredientCategory } from '../../types/Recipe';
-import type { ListMember } from '../../types/ShoppingList';
+import type { ListMember, CurrencyConfig } from '../../types/ShoppingList';
 import { CATEGORY_LABELS, CATEGORY_ICONS } from '../../types/Recipe';
 import { ShoppingItemRow } from './ShoppingItemRow';
 
@@ -117,6 +117,9 @@ interface CategorySectionProps {
   onDeleteItem: (itemId: string) => void;
   defaultCollapsed?: boolean;
   members?: Record<string, ListMember>;
+  costSplittingEnabled?: boolean;
+  currency?: CurrencyConfig;
+  onPriceSet?: (itemId: string, price: number) => void;
 }
 
 export const CategorySection: React.FC<CategorySectionProps> = ({
@@ -127,6 +130,9 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   onDeleteItem,
   defaultCollapsed = false,
   members,
+  costSplittingEnabled,
+  currency,
+  onPriceSet,
 }) => {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
@@ -172,6 +178,9 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
             onQuantityChange={(qty) => onQuantityChange(item.id, qty)}
             onDelete={() => onDeleteItem(item.id)}
             members={members}
+            costSplittingEnabled={costSplittingEnabled}
+            currency={currency}
+            onPriceSet={onPriceSet ? (price) => onPriceSet(item.id, price) : undefined}
           />
         ))}
       </ItemList>

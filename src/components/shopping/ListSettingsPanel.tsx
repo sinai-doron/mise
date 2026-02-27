@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useShoppingListStore } from '../../stores/shoppingListStore';
 import { ShareListModal } from './ShareListModal';
+import { CurrencySelector } from './CurrencySelector';
 import type { ShoppingList } from '../../types/ShoppingList';
 
 const Overlay = styled.div`
@@ -260,6 +261,49 @@ const ConfirmText = styled.span`
   font-weight: 600;
 `;
 
+const ToggleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+`;
+
+const ToggleLabel = styled.span`
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+`;
+
+const Toggle = styled.button<{ $active: boolean }>`
+  width: 48px;
+  height: 28px;
+  border-radius: 14px;
+  border: none;
+  background: ${(props) => (props.$active ? '#22c55e' : '#e2e8f0')};
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: ${(props) => (props.$active ? '23px' : '3px')};
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    transition: left 0.2s;
+  }
+`;
+
+const CurrencyRow = styled.div`
+  margin-top: 8px;
+`;
+
 function getInitials(name: string): string {
   return name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 }
@@ -282,6 +326,8 @@ export const ListSettingsPanel: React.FC<ListSettingsPanelProps> = ({ list, onCl
   const leaveList = useShoppingListStore((s) => s.leaveList);
   const removeMember = useShoppingListStore((s) => s.removeMember);
   const isOwner = useShoppingListStore((s) => s.isOwner);
+  const enableCostSplitting = useShoppingListStore((s) => s.enableCostSplitting);
+  const setListCurrency = useShoppingListStore((s) => s.setListCurrency);
 
   const isListOwner = isOwner(list.id);
   const memberEntries = Object.entries(list.members);
@@ -417,6 +463,28 @@ export const ListSettingsPanel: React.FC<ListSettingsPanelProps> = ({ list, onCl
             </MemberRow>
           ))}
         </Section>
+
+        {/* Cost Splitting (owner only) */}
+        {isListOwner && (
+          <Section>
+            <SectionLabel>Cost Splitting</SectionLabel>
+            <ToggleRow>
+              <ToggleLabel>Enable Cost Splitting</ToggleLabel>
+              <Toggle
+                $active={!!list.costSplittingEnabled}
+                onClick={() => enableCostSplitting(list.id, !list.costSplittingEnabled)}
+              />
+            </ToggleRow>
+            {list.costSplittingEnabled && (
+              <CurrencyRow>
+                <CurrencySelector
+                  value={list.currency}
+                  onChange={(code) => setListCurrency(list.id, code)}
+                />
+              </CurrencyRow>
+            )}
+          </Section>
+        )}
 
         {/* Danger zone */}
         <Section>
