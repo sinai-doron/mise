@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import type { ShoppingItem, IngredientCategory } from '../../types/Recipe';
+import type { ListMember } from '../../types/ShoppingList';
 import { CATEGORY_LABELS, CATEGORY_ICONS } from '../../types/Recipe';
 import { ShoppingItemRow } from './ShoppingItemRow';
 
@@ -115,6 +116,7 @@ interface CategorySectionProps {
   onQuantityChange: (itemId: string, newQuantity: number) => void;
   onDeleteItem: (itemId: string) => void;
   defaultCollapsed?: boolean;
+  members?: Record<string, ListMember>;
 }
 
 export const CategorySection: React.FC<CategorySectionProps> = ({
@@ -124,6 +126,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   onQuantityChange,
   onDeleteItem,
   defaultCollapsed = false,
+  members,
 }) => {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
@@ -168,6 +171,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
             onToggle={() => onToggleItem(item.id)}
             onQuantityChange={(qty) => onQuantityChange(item.id, qty)}
             onDelete={() => onDeleteItem(item.id)}
+            members={members}
           />
         ))}
       </ItemList>

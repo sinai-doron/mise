@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './firebase';
 import { SignIn } from './components/SignIn';
 import { RecipesPage } from './pages/RecipesPage';
 import { ShoppingListPage } from './pages/ShoppingListPage';
+import { JoinListPage } from './pages/JoinListPage';
 import { MealPlanPage } from './pages/MealPlanPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { PublicRecipePage } from './pages/PublicRecipePage';
@@ -65,6 +66,7 @@ function AppRoutes() {
       <Route path="/recipes" element={<AuthGuard><RecipesPage /></AuthGuard>} />
       <Route path="/recipes/:recipeId" element={<AuthGuard><RecipesPage /></AuthGuard>} />
       <Route path="/shopping" element={<AuthGuard><ShoppingListPage /></AuthGuard>} />
+      <Route path="/shopping/join/:inviteCode" element={<AuthGuard><JoinListPage /></AuthGuard>} />
       <Route path="/meal-plan" element={<AuthGuard><MealPlanPage /></AuthGuard>} />
       <Route path="/collections" element={<AuthGuard><CollectionsPage /></AuthGuard>} />
       <Route path="/profile" element={<AuthGuard><ProfilePage /></AuthGuard>} />

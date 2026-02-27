@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 import { useMealPlanStore, getCurrentWeekRange } from '../../stores/mealPlanStore';
 import { useRecipeStore } from '../../stores/recipeStore';
+import { useShoppingListStore } from '../../stores/shoppingListStore';
+import { ListPickerModal } from '../shopping/ListPickerModal';
 import { addDays } from '../../types/MealPlan';
 import { formatQuantity, CATEGORY_ORDER } from '../../types/Recipe';
 import type { AggregatedIngredient } from '../../types/MealPlan';
@@ -250,9 +252,12 @@ export function MealPlanShoppingModal({ onClose, weekStart }: MealPlanShoppingMo
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [selectedRange, setSelectedRange] = useState<DateRange>('thisWeek');
+  const [showListPicker, setShowListPicker] = useState(false);
 
   const recipes = useRecipeStore((s) => s.recipes);
-  const groceryItems = useRecipeStore((s) => s.groceryItems);
+
+  const shoppingLists = useShoppingListStore((s) => s.lists);
+  const addManualItem = useShoppingListStore((s) => s.addManualItem);
 
   const { aggregateIngredients, createGroceryItemsFromPlan } = useMealPlanStore();
 
@@ -280,42 +285,33 @@ export function MealPlanShoppingModal({ onClose, weekStart }: MealPlanShoppingMo
     return acc;
   }, new Map<IngredientCategory, AggregatedIngredient[]>());
 
-  // Handle add to shopping list
-  const handleAddToShoppingList = () => {
+  // Add aggregated ingredients to a specific shopping list
+  const addIngredientsToList = (listId?: string) => {
+    if (listId) {
+      useShoppingListStore.getState().setActiveList(listId);
+    }
+
     const items = createGroceryItemsFromPlan(
       currentRange.startDate,
       currentRange.endDate,
       recipes
     );
 
-    // Add each item to the grocery store
-    // Note: We're using a workaround here since the store doesn't have a bulk add method
-    // We'll add items by manipulating the grocery list directly
-    const currentGroceryItems = groceryItems;
-    const newItems = [...currentGroceryItems];
-
     for (const item of items) {
-      // Check if similar item exists
-      const existingIndex = newItems.findIndex(
-        (g) => g.name.toLowerCase() === item.name.toLowerCase() && g.unit === item.unit
-      );
-
-      if (existingIndex >= 0) {
-        // Update existing item quantity
-        newItems[existingIndex] = {
-          ...newItems[existingIndex],
-          scaledQuantity: newItems[existingIndex].scaledQuantity + item.scaledQuantity,
-          quantity: newItems[existingIndex].quantity + item.quantity,
-        };
-      } else {
-        newItems.push(item);
-      }
+      addManualItem(item.name, item.scaledQuantity, item.unit, item.category);
     }
 
-    // Save to store (we need to use the store's internal save method)
-    // For now, navigate to shopping list after showing success
     onClose();
     navigate('/shopping');
+  };
+
+  // Handle add to shopping list
+  const handleAddToShoppingList = () => {
+    if (shoppingLists.length > 1) {
+      setShowListPicker(true);
+    } else {
+      addIngredientsToList();
+    }
   };
 
   // Handle overlay click
@@ -393,6 +389,16 @@ export function MealPlanShoppingModal({ onClose, weekStart }: MealPlanShoppingMo
           </AddButton>
         </Footer>
       </Modal>
+
+      {showListPicker && (
+        <ListPickerModal
+          onSelect={(listId) => {
+            setShowListPicker(false);
+            addIngredientsToList(listId);
+          }}
+          onClose={() => setShowListPicker(false)}
+        />
+      )}
     </Overlay>
   );
 }

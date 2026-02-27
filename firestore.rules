@@ -101,6 +101,41 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ========== SHOPPING LISTS (collaborative) ==========
+    match /shoppingLists/{listId} {
+      // Members can read their own lists; any authenticated user can read
+      // (needed for invite-code queries where user isn't a member yet)
+      allow read: if isAuthenticated();
+
+      // Authenticated users can create lists (they must be the owner)
+      allow create: if isAuthenticated() &&
+                      request.resource.data.ownerId == request.auth.uid &&
+                      request.auth.uid in request.resource.data.memberIds;
+
+      // Members can update (items, invite settings, member joins);
+      // joining user adds themselves to memberIds via invite code
+      allow update: if isAuthenticated() &&
+                      (request.auth.uid in resource.data.memberIds ||
+                       request.auth.uid in request.resource.data.memberIds);
+
+      // Only owner can delete
+      allow delete: if isAuthenticated() &&
+                      resource.data.ownerId == request.auth.uid;
+
+      // Items subcollection: any list member can read/write
+      match /items/{itemId} {
+        allow read, write: if isAuthenticated() &&
+                             request.auth.uid in get(/databases/$(database)/documents/shoppingLists/$(listId)).data.memberIds;
+      }
+    }
+
+    // ========== PRESENCE (active list users) ==========
+    match /activeListUsers/{listId} {
+      // Any authenticated user can read/write presence
+      // Presence is a single document per list with a map of user entries
+      allow read, write: if isAuthenticated();
+    }
+
     // Deny all other paths
     match /{document=**} {
       allow read, write: if false;

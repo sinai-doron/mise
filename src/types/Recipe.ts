@@ -162,6 +162,7 @@ export interface ShoppingItem {
   bought: boolean;
   sources: ItemSource[];
   notes?: string;
+  addedBy?: string; // userId of who added the item (for collaborative lists)
   createdAt: number;
   updatedAt: number;
 }

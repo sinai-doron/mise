@@ -9,6 +9,8 @@ import { AddToCollectionModal } from '../AddToCollectionModal';
 import { useRecipeEngine } from '../../hooks/useRecipeEngine';
 import { useTimerManager } from '../../hooks/useTimerManager';
 import { useRecipeStore } from '../../stores/recipeStore';
+import { useShoppingListStore } from '../../stores/shoppingListStore';
+import { ListPickerModal } from '../shopping/ListPickerModal';
 import { formatQuantity, isRTL } from '../../types/Recipe';
 import type { Recipe } from '../../types/Recipe';
 import { generateRecipePlaceholder } from '../../utils/recipePlaceholder';
@@ -802,6 +804,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({ recipe, onClose, onE
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showCollectionModal, setShowCollectionModal] = useState(false);
+  const [showListPicker, setShowListPicker] = useState(false);
 
   // Determine if the recipe is RTL based on language
   const rtl = isRTL(recipe.language);
@@ -827,8 +830,9 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({ recipe, onClose, onE
     getTimerForStep,
   } = useTimerManager();
 
-  const addToGroceryList = useRecipeStore((s) => s.addToGroceryList);
   const resetCookingSession = useRecipeStore((s) => s.resetCookingSession);
+  const shoppingLists = useShoppingListStore((s) => s.lists);
+  const addRecipeToShoppingList = useShoppingListStore((s) => s.addRecipeToShoppingList);
 
   const totalTime = recipe.prepTime + recipe.cookTime;
 
@@ -910,7 +914,17 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({ recipe, onClose, onE
   };
 
   const handleAddToShoppingList = () => {
-    addToGroceryList(recipe.id);
+    if (shoppingLists.length > 1) {
+      setShowListPicker(true);
+    } else {
+      addRecipeToShoppingList(recipe.id);
+      navigate('/shopping');
+    }
+  };
+
+  const handleListPickerSelect = async (listId: string) => {
+    setShowListPicker(false);
+    await addRecipeToShoppingList(recipe.id, listId);
     navigate('/shopping');
   };
 
@@ -1193,6 +1207,13 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({ recipe, onClose, onE
         <AddToCollectionModal
           recipeId={recipe.id}
           onClose={() => setShowCollectionModal(false)}
+        />
+      )}
+
+      {showListPicker && (
+        <ListPickerModal
+          onSelect={handleListPickerSelect}
+          onClose={() => setShowListPicker(false)}
         />
       )}
     </Container>

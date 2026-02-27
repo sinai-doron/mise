@@ -231,6 +231,56 @@ app.get('/u/:collectionId', async (req, res) => {
   }
 });
 
+// Handle shopping list invite link requests
+app.get('/shopping/join/:inviteCode', async (req, res) => {
+  const { inviteCode } = req.params;
+
+  try {
+    const snapshot = await db.collection('shoppingLists')
+      .where('inviteCode', '==', inviteCode)
+      .where('inviteEnabled', '==', true)
+      .limit(1)
+      .get();
+
+    if (!snapshot.empty) {
+      const list = snapshot.docs[0].data();
+
+      const indexPath = join(DIST_DIR, 'index.html');
+      let html = readFileSync(indexPath, 'utf-8');
+
+      const ownerName = list.ownerName || 'Someone';
+      const title = `Join "${list.name}" on Prepd`;
+      const description = `${ownerName} invited you to collaborate on their shopping list "${list.name}".`;
+
+      const ogTags = generateOgTags({
+        title,
+        description,
+        url: `https://getprepd.app/shopping/join/${inviteCode}`,
+        type: 'website',
+      });
+
+      html = html.replace('</head>', `${ogTags}\n  </head>`);
+      html = html.replace(
+        /<title>.*?<\/title>/,
+        `<title>${escapeHtml(title)} | Prepd</title>`
+      );
+
+      res.send(html);
+      return;
+    }
+
+    // Invite not found or disabled - serve default HTML for SPA to handle
+    const indexPath = join(DIST_DIR, 'index.html');
+    const html = readFileSync(indexPath, 'utf-8');
+    res.send(html);
+  } catch (error) {
+    console.error('Error fetching shopping list invite:', error);
+    const indexPath = join(DIST_DIR, 'index.html');
+    const html = readFileSync(indexPath, 'utf-8');
+    res.send(html);
+  }
+});
+
 // Proxy endpoint for fetching external URLs (replaces public CORS proxies)
 app.get('/api/proxy', async (req, res) => {
   const url = req.query.url as string;

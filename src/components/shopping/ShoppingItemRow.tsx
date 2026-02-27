@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import type { ShoppingItem } from '../../types/Recipe';
 import { formatQuantity } from '../../types/Recipe';
+import type { ListMember } from '../../types/ShoppingList';
 import { ItemSourceBadges } from './ItemSourceBadges';
 import { QuantityControl } from './QuantityControl';
 
@@ -221,12 +222,19 @@ const EditWrapper = styled.div`
   overflow: hidden;
 `;
 
+const AddedByText = styled.span`
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+`;
+
 interface ShoppingItemRowProps {
-  item: ShoppingItem;
+  item: ShoppingItem & { addedBy?: string };
   onToggle: () => void;
   onQuantityChange: (newQuantity: number) => void;
   onDelete: () => void;
   showSources?: boolean;
+  members?: Record<string, ListMember>;
 }
 
 export const ShoppingItemRow: React.FC<ShoppingItemRowProps> = ({
@@ -235,6 +243,7 @@ export const ShoppingItemRow: React.FC<ShoppingItemRowProps> = ({
   onQuantityChange,
   onDelete,
   showSources = true,
+  members,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editQuantity, setEditQuantity] = useState(item.totalQuantity);
@@ -338,6 +347,9 @@ export const ShoppingItemRow: React.FC<ShoppingItemRowProps> = ({
         </ItemQuantity>
         {showSources && item.sources.length > 0 && (
           <ItemSourceBadges sources={item.sources} />
+        )}
+        {members && item.addedBy && members[item.addedBy] && (
+          <AddedByText>Added by {members[item.addedBy].displayName}</AddedByText>
         )}
       </ItemInfo>
       <RightSection>

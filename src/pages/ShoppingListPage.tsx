@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { SEO } from '../components/SEO';
 import { useRecipeStore } from '../stores/recipeStore';
+import { useShoppingListStore } from '../stores/shoppingListStore';
 import { useAuth } from '../firebase';
 import { UserMenu } from '../components/UserMenu';
-import { QuickAddInput, CategorySection, FrequentlyBoughtPanel } from '../components/shopping';
+import { QuickAddInput, CategorySection, FrequentlyBoughtPanel, ListSwitcher, ListSettingsPanel, PresenceAvatars } from '../components/shopping';
 import type { ShoppingItem, IngredientCategory } from '../types/Recipe';
 import { CATEGORY_ORDER } from '../types/Recipe';
 
@@ -385,22 +386,30 @@ export function ShoppingListPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
-  const shoppingItems = useRecipeStore((s) => s.shoppingItems);
-  const purchaseHistory = useRecipeStore((s) => s.purchaseHistory);
-  const groceryItems = useRecipeStore((s) => s.groceryItems);
+  // Recipe store — still needed for general Firebase init (recipes, etc.)
   const isLoading = useRecipeStore((s) => s.isLoading);
   const hasInitialized = useRecipeStore((s) => s.hasInitialized);
   const initializeFirebaseSync = useRecipeStore((s) => s.initializeFirebaseSync);
-  const addManualItem = useRecipeStore((s) => s.addManualItem);
-  const toggleShoppingItem = useRecipeStore((s) => s.toggleShoppingItem);
-  const updateShoppingItemQuantity = useRecipeStore((s) => s.updateShoppingItemQuantity);
-  const deleteShoppingItem = useRecipeStore((s) => s.deleteShoppingItem);
-  const clearPurchasedItems = useRecipeStore((s) => s.clearPurchasedItems);
-  const clearShoppingList = useRecipeStore((s) => s.clearShoppingList);
-  const migrateGroceryToShopping = useRecipeStore((s) => s.migrateGroceryToShopping);
 
-  // Initialize Firebase sync on mount
+  // Shopping list store — new multi-list store
+  const shoppingItems = useShoppingListStore((s) => s.activeListItems);
+  const purchaseHistory = useShoppingListStore((s) => s.purchaseHistory);
+  const isLoadingLists = useShoppingListStore((s) => s.isLoadingLists);
+  const isLoadingItems = useShoppingListStore((s) => s.isLoadingItems);
+  const addManualItem = useShoppingListStore((s) => s.addManualItem);
+  const toggleShoppingItem = useShoppingListStore((s) => s.toggleShoppingItem);
+  const updateShoppingItemQuantity = useShoppingListStore((s) => s.updateShoppingItemQuantity);
+  const deleteShoppingItem = useShoppingListStore((s) => s.deleteShoppingItem);
+  const clearPurchasedItems = useShoppingListStore((s) => s.clearPurchasedItems);
+  const clearShoppingList = useShoppingListStore((s) => s.clearShoppingList);
+  const initializeShoppingLists = useShoppingListStore((s) => s.initialize);
+  const cleanupShoppingLists = useShoppingListStore((s) => s.cleanupSubscriptions);
+  const getActiveList = useShoppingListStore((s) => s.getActiveList);
+  const activeList = getActiveList();
+
+  // Initialize Firebase sync on mount (recipe store)
   useEffect(() => {
     let cleanup: (() => void) | undefined;
 
@@ -415,12 +424,15 @@ export function ShoppingListPage() {
     };
   }, [initializeFirebaseSync, user]);
 
-  // Migrate legacy grocery items to shopping items on first load
+  // Initialize shopping list store
   useEffect(() => {
-    if (hasInitialized && shoppingItems.length === 0 && groceryItems.length > 0) {
-      migrateGroceryToShopping();
+    if (user) {
+      initializeShoppingLists();
     }
-  }, [hasInitialized, shoppingItems.length, groceryItems.length, migrateGroceryToShopping]);
+    return () => {
+      cleanupShoppingLists();
+    };
+  }, [user, initializeShoppingLists, cleanupShoppingLists]);
 
   // Group items by category
   const groupedItems = useMemo(() => {
@@ -508,6 +520,14 @@ export function ShoppingListPage() {
           </PageTitleGroup>
 
           <HeaderActions>
+            {activeList && activeList.memberIds.length > 1 && (
+              <PresenceAvatars />
+            )}
+            {activeList && (
+              <ActionButton onClick={() => setShowSettings(true)}>
+                <span className="material-symbols-outlined">settings</span>
+              </ActionButton>
+            )}
             {boughtItems > 0 && (
               <ActionButton onClick={clearPurchasedItems}>
                 <span className="material-symbols-outlined">done_all</span>
@@ -523,6 +543,8 @@ export function ShoppingListPage() {
           </HeaderActions>
         </PageHeader>
 
+        <ListSwitcher />
+
         <QuickAddContainer>
           <QuickAddInput onAdd={addManualItem} purchaseHistory={purchaseHistory} />
         </QuickAddContainer>
@@ -533,7 +555,7 @@ export function ShoppingListPage() {
           onAdd={addManualItem}
         />
 
-        {!hasInitialized || isLoading ? (
+        {!hasInitialized || isLoading || isLoadingLists || isLoadingItems ? (
           <LoadingState>
             <span className="material-symbols-outlined">hourglass_empty</span>
           </LoadingState>
@@ -557,6 +579,7 @@ export function ShoppingListPage() {
                 onToggleItem={toggleShoppingItem}
                 onQuantityChange={updateShoppingItemQuantity}
                 onDeleteItem={deleteShoppingItem}
+                members={activeList && activeList.memberIds.length > 1 ? activeList.members : undefined}
               />
             ))}
           </CategoryList>
@@ -572,6 +595,10 @@ export function ShoppingListPage() {
             <StatusButton onClick={clearPurchasedItems}>Clear done</StatusButton>
           )}
         </BottomStatusBar>
+      )}
+
+      {showSettings && activeList && (
+        <ListSettingsPanel list={activeList} onClose={() => setShowSettings(false)} />
       )}
     </PageContainer>
   );
