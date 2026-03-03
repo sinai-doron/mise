@@ -324,7 +324,7 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSave, onClose 
     recipe?.steps?.map((step) => ({
       id: step.id,
       description: step.description,
-      timer: step.timer?.toString() ?? '',
+      timer: step.timer ? Math.round(step.timer / 60).toString() : '',
       tips: step.tips ?? '',
     })) ?? [{ id: crypto.randomUUID(), description: '', timer: '', tips: '' }]
   );
