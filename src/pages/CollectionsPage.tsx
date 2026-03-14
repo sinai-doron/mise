@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 import { useLanguage } from '../i18n/useLanguage';
+import LanguageSelector from '../components/LanguageSelector';
 import { SEO } from '../components/SEO';
 import { useCollectionsStore } from '../stores/collectionsStore';
 import { useRecipeStore } from '../stores/recipeStore';
@@ -46,6 +47,7 @@ const HeaderContent = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 24px;
 
   @media (min-width: 768px) {
     padding: 16px 32px;
@@ -160,30 +162,6 @@ const MobileNavLink = styled.a<{ $active?: boolean }>`
   }
 `;
 
-const LanguageToggle = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: rgba(44, 62, 80, 0.08);
-  border-radius: 8px;
-  padding: 4px;
-`;
-
-const LanguageButton = styled.button<{ $active: boolean }>`
-  padding: 6px 10px;
-  border: none;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-  background: ${(props) => (props.$active ? colors.primary : 'transparent')};
-  color: ${(props) => (props.$active ? 'white' : colors.textMain)};
-
-  &:hover {
-    background: ${(props) => (props.$active ? colors.primary : 'rgba(44, 62, 80, 0.12)')};
-  }
-`;
 
 const MainContent = styled.main`
   flex: 1;
@@ -569,7 +547,7 @@ function getCollectionCoverImage(collection: Collection, recipes: Recipe[]): str
 export function CollectionsPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { currentLanguage, changeLanguage, isRTL } = useLanguage();
+  const { isRTL } = useLanguage();
   const { user } = useAuth();
 
   const { collections, isLoading, loadCollections, createNewCollection } = useCollectionsStore();
@@ -641,14 +619,7 @@ export function CollectionsPage() {
           </Nav>
 
           <HeaderRight>
-            <LanguageToggle>
-              <LanguageButton $active={currentLanguage === 'en'} onClick={() => changeLanguage('en')}>
-                EN
-              </LanguageButton>
-              <LanguageButton $active={currentLanguage === 'he'} onClick={() => changeLanguage('he')}>
-                עב
-              </LanguageButton>
-            </LanguageToggle>
+            <LanguageSelector />
             <MobileMenuButton onClick={() => setIsMobileNavOpen(o => !o)}>
               <span className="material-symbols-outlined">{isMobileNavOpen ? 'close' : 'menu'}</span>
             </MobileMenuButton>

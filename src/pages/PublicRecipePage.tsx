@@ -341,6 +341,8 @@ export function PublicRecipePage() {
         category: recipe.category,
         author: recipe.author,
         sourceUrl: recipe.sourceUrl,
+        videoUrl: recipe.videoUrl,
+        credit: recipe.credit,
         nutrition: recipe.nutrition,
         chefTip: recipe.chefTip,
         language: recipe.language,

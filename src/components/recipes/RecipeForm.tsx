@@ -308,6 +308,9 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSave, onClose 
   const [category, setCategory] = useState(recipe?.category ?? 'Main Dishes');
   const [tags, setTags] = useState(recipe?.tags?.join(', ') ?? '');
   const [language, setLanguage] = useState<RecipeLanguage>(recipe?.language ?? 'en');
+  const [sourceUrl, setSourceUrl] = useState(recipe?.sourceUrl ?? '');
+  const [videoUrl, setVideoUrl] = useState(recipe?.videoUrl ?? '');
+  const [credit, setCredit] = useState(recipe?.credit ?? '');
 
   const [ingredients, setIngredients] = useState<IngredientFormData[]>(
     recipe?.ingredients?.map((ing) => ({
@@ -397,6 +400,9 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSave, onClose 
       tags: formattedTags,
       category: category.trim() || 'Main Dishes',
       language,
+      sourceUrl: sourceUrl.trim() || undefined,
+      videoUrl: videoUrl.trim() || undefined,
+      credit: credit.trim() || undefined,
     });
   };
 
@@ -578,6 +584,37 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSave, onClose 
               <span className="material-symbols-outlined">add</span>
               {t('recipe.form.addStep')}
             </AddButton>
+          </Section>
+
+          <Section>
+            <SectionTitle>{t('recipe.form.resources')}</SectionTitle>
+            <FormGroup>
+              <Label>{t('recipe.form.sourceUrl')}</Label>
+              <Input
+                value={sourceUrl}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSourceUrl(e.target.value)}
+                placeholder={t('recipe.form.sourceUrlPlaceholder')}
+                type="url"
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>{t('recipe.form.videoUrl')}</Label>
+              <Input
+                value={videoUrl}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setVideoUrl(e.target.value)}
+                placeholder={t('recipe.form.videoUrlPlaceholder')}
+                type="url"
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label>{t('recipe.form.credit')}</Label>
+              <TextArea
+                value={credit}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCredit(e.target.value)}
+                placeholder={t('recipe.form.creditPlaceholder')}
+                style={{ minHeight: '60px' }}
+              />
+            </FormGroup>
           </Section>
         </Content>
 

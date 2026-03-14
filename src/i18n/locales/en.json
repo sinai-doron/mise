@@ -49,6 +49,8 @@
     "chefTips": "Chef's Tips",
     "reviews": "reviews",
     "level": "Level",
+    "viewOriginal": "View original recipe",
+    "watchVideo": "Watch video",
     "nutrition": {
       "calories": "Calories",
       "protein": "Protein",
@@ -82,7 +84,14 @@
       "recipeTitle": "Recipe title",
       "briefDescription": "Brief description of the recipe",
       "tagsPlaceholder": "italian, pasta, quick",
-      "categoryPlaceholder": "e.g., Main Dishes"
+      "categoryPlaceholder": "e.g., Main Dishes",
+      "resources": "Resources",
+      "sourceUrl": "Original Recipe URL",
+      "sourceUrlPlaceholder": "https://example.com/recipe",
+      "videoUrl": "Video URL",
+      "videoUrlPlaceholder": "https://youtube.com/watch?v=...",
+      "credit": "Notes / Credit",
+      "creditPlaceholder": "Recipe by..., adapted from..., etc."
     },
     "detail": {
       "readyToCook": "Ready to cook?",

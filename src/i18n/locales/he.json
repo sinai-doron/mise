@@ -49,6 +49,8 @@
     "chefTips": "טיפים מהשף",
     "reviews": "ביקורות",
     "level": "רמה",
+    "viewOriginal": "צפה במתכון המקורי",
+    "watchVideo": "צפה בסרטון",
     "nutrition": {
       "calories": "קלוריות",
       "protein": "חלבון",
@@ -82,7 +84,14 @@
       "recipeTitle": "שם המתכון",
       "briefDescription": "תיאור קצר של המתכון",
       "tagsPlaceholder": "איטלקי, פסטה, מהיר",
-      "categoryPlaceholder": "לדוגמה: מנות עיקריות"
+      "categoryPlaceholder": "לדוגמה: מנות עיקריות",
+      "resources": "משאבים",
+      "sourceUrl": "קישור למתכון המקורי",
+      "sourceUrlPlaceholder": "https://example.com/recipe",
+      "videoUrl": "קישור לסרטון",
+      "videoUrlPlaceholder": "https://youtube.com/watch?v=...",
+      "credit": "הערות / קרדיט",
+      "creditPlaceholder": "מתכון מאת..., מבוסס על..., וכו׳"
     },
     "detail": {
       "readyToCook": "מוכנים לבשל?",

@@ -116,6 +116,8 @@ export interface Recipe {
   category: string;
   author?: string;
   sourceUrl?: string; // Original URL where recipe was imported from
+  videoUrl?: string; // Video tutorial URL (YouTube, etc.)
+  credit?: string; // Notes or credit/attribution text
   rating?: number; // 0-5 scale
   reviewCount?: number;
   nutrition?: NutritionInfo;

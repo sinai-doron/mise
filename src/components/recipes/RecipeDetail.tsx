@@ -16,15 +16,15 @@ import type { Recipe } from '../../types/Recipe';
 import { generateRecipePlaceholder } from '../../utils/recipePlaceholder';
 import { sanitize } from '../../utils/sanitize';
 
-// Helper to format seconds to human readable
-const formatDuration = (seconds: number): string => {
-  if (seconds < 60) return `${seconds} שניות`;
+// Helper to format seconds to human readable using i18n
+const formatDuration = (seconds: number, t: (key: string, options?: Record<string, unknown>) => string): string => {
+  if (seconds < 60) return t('duration.seconds', { count: seconds });
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} דקות`;
+  if (minutes < 60) return t('duration.minutes', { count: minutes });
   const hours = Math.floor(minutes / 60);
   const remainingMins = minutes % 60;
-  if (remainingMins === 0) return `${hours} שעה`;
-  return `${hours} שעה ו-${remainingMins} דקות`;
+  if (remainingMins === 0) return t('duration.hour', { count: hours });
+  return t('duration.hourAndMinutes', { hours, minutes: remainingMins });
 };
 
 // Color palette from design
@@ -1031,11 +1031,26 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({ recipe, onClose, onE
           </div>
           <RecipeTitle>{sanitize(recipe.title)}</RecipeTitle>
           {recipe.author && <AuthorText>{t('common.by')} {recipe.author}</AuthorText>}
-          {recipe.sourceUrl && (
-            <SourceLink href={ensureProtocol(recipe.sourceUrl)} target="_blank" rel="noopener noreferrer">
-              <span className="material-symbols-outlined">open_in_new</span>
-              {t('recipe.viewOriginal', { defaultValue: 'View original recipe' })}
-            </SourceLink>
+          {(recipe.sourceUrl || recipe.videoUrl || recipe.credit) && (
+            <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {recipe.sourceUrl && (
+                <SourceLink href={ensureProtocol(recipe.sourceUrl)} target="_blank" rel="noopener noreferrer">
+                  <span className="material-symbols-outlined">open_in_new</span>
+                  {t('recipe.viewOriginal', { defaultValue: 'View original recipe' })}
+                </SourceLink>
+              )}
+              {recipe.videoUrl && (
+                <SourceLink href={ensureProtocol(recipe.videoUrl)} target="_blank" rel="noopener noreferrer">
+                  <span className="material-symbols-outlined">play_circle</span>
+                  {t('recipe.watchVideo', { defaultValue: 'Watch video' })}
+                </SourceLink>
+              )}
+              {recipe.credit && (
+                <div style={{ fontSize: 13, color: '#64748b', fontStyle: 'italic' }}>
+                  {recipe.credit}
+                </div>
+              )}
+            </div>
           )}
         </TitleContent>
 
@@ -1177,7 +1192,7 @@ export const RecipeDetail: React.FC<RecipeDetailProps> = ({ recipe, onClose, onE
                         {step.timer && (
                           <StepTimer>
                             <span className="material-symbols-outlined">timer</span>
-                            {formatDuration(step.timer)}
+                            {formatDuration(step.timer, t)}
                           </StepTimer>
                         )}
                       </StepMeta>
