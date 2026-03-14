@@ -31,6 +31,7 @@ steps:
       - '--region=$_DEPLOY_REGION'
       - '--platform=managed'
       - '--allow-unauthenticated'
+      - '--set-env-vars=GEMINI_API_KEY=$_GEMINI_API_KEY'
 
 images:
   - '$_AR_HOSTNAME/$PROJECT_ID/$_AR_REPOSITORY/$_SERVICE_NAME'
@@ -49,6 +50,8 @@ substitutions:
   _VITE_FIREBASE_MESSAGING_SENDER_ID: ''
   _VITE_FIREBASE_APP_ID: ''
   _VITE_FIREBASE_MEASUREMENT_ID: ''
+  # Gemini API key — set in Cloud Build trigger config (masked, never in repo)
+  _GEMINI_API_KEY: ''
 
 options:
   logging: CLOUD_LOGGING_ONLY

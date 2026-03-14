@@ -4,8 +4,10 @@ import { join } from 'path';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 const app = express();
+app.use(express.json({ limit: '100kb' }));
 const PORT = process.env.PORT || 8080;
 const DIST_DIR = join(process.cwd(), 'dist');
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 // Initialize Firebase Admin SDK
 // In production, use default credentials from Cloud Run
 // In development, use service account from environment variable
@@ -232,6 +234,311 @@ app.get('/shopping/join/:inviteCode', async (req, res) => {
         const indexPath = join(DIST_DIR, 'index.html');
         const html = readFileSync(indexPath, 'utf-8');
         res.send(html);
+    }
+});
+// --- AI Recipe Import utilities ---
+function escapeForJSON(text) {
+    return text
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+        .replace(/\t/g, '\\t')
+        .replace(/\u2028/g, '\\u2028')
+        .replace(/\u2029/g, '\\u2029')
+        // eslint-disable-next-line no-control-regex
+        .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, (char) => '\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'));
+}
+function sanitizeModelJSON(text) {
+    return text
+        .replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"')
+        .replace(/[\u2018\u2019\u201A\u201B\u2032\u2035]/g, "'")
+        .replace(/[\u2013\u2014]/g, '-')
+        .replace(/[\u2028\u2029]/g, '')
+        .replace(/[\u200B-\u200D\uFEFF]/g, '')
+        // eslint-disable-next-line no-control-regex
+        .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
+}
+const CONVERSION_PROMPT = `You are a recipe data converter. Convert the provided recipe into the exact JSON format specified below.
+
+## Output Format
+
+\`\`\`json
+{
+  "title": "Recipe Name",
+  "description": "Brief 1-2 sentence description",
+  "aboutDish": "Optional longer description about the dish's origin, history, or what makes it special",
+  "image": "",
+  "prepTime": 15,
+  "cookTime": 30,
+  "difficulty": "easy|medium|hard",
+  "defaultServings": 4,
+  "category": "Main Dishes|Appetizers|Desserts|Soups|Salads|Breakfast|Beverages|Side Dishes|Snacks",
+  "tags": ["tag1", "tag2"],
+  "author": "Optional author name",
+  "sourceUrl": "URL where recipe was found (if provided)",
+  "rating": 4.5,
+  "nutrition": {
+    "calories": 350,
+    "protein": 25,
+    "carbs": 30,
+    "fat": 15
+  },
+  "chefTip": "Optional professional tip for best results",
+  "language": "en|he",
+  "ingredients": [
+    {
+      "id": "ing-1",
+      "name": "ingredient name",
+      "quantity": 2,
+      "unit": "cups|tbsp|tsp|g|kg|ml|l|oz|lb|pieces|cloves|whole",
+      "category": "produce|dairy|meat|pantry|frozen|bakery|spices|other",
+      "notes": "optional notes like 'diced' or 'room temperature'"
+    }
+  ],
+  "steps": [
+    {
+      "id": "step-1",
+      "order": 1,
+      "description": "Step instruction text",
+      "timer": 300,
+      "tips": "Optional tip for this step"
+    }
+  ]
+}
+\`\`\`
+
+## Category Mapping for Ingredients
+- **produce**: fruits, vegetables, fresh herbs, garlic, onions, potatoes
+- **dairy**: milk, cheese, butter, eggs, cream, yogurt
+- **meat**: beef, chicken, pork, fish, seafood, lamb
+- **bakery**: bread, tortillas, pita, buns, pastry
+- **frozen**: frozen vegetables, ice cream, frozen fruits
+- **pantry**: pasta, rice, flour, sugar, canned goods, oils, vinegar, sauces
+- **spices**: salt, pepper, cumin, paprika, dried herbs, spice blends
+- **other**: anything that doesn't fit above
+
+## Rules
+1. Generate unique IDs for ingredients (ing-1, ing-2...) and steps (step-1, step-2...)
+2. Timer is in SECONDS (5 minutes = 300 seconds). Only add timer if step involves waiting/cooking time
+3. Times (prepTime, cookTime) are in MINUTES
+4. Quantity must be a number (use 0.5 for "half", 0.25 for "quarter")
+5. Keep step descriptions clear and actionable
+6. Use "en" for English recipes, "he" for Hebrew recipes
+7. Estimate nutrition if not provided (per serving)
+8. Tags should be lowercase, no spaces (use hyphens if needed)
+9. Difficulty: easy (under 30 min, simple techniques), medium (30-60 min or moderate skill), hard (60+ min or advanced techniques)
+
+## Recipe to Convert
+
+Note: The recipe text below has special characters pre-escaped for JSON (e.g., quotes as \\", backslashes as \\\\, newlines as \\n). Use these escaped values directly in your JSON string fields.
+
+`;
+function extractTextFromHtml(html) {
+    let text = html;
+    // Remove script, style, nav, header, footer, aside tags and their contents
+    text = text.replace(/<(script|style|nav|header|footer|aside)[^>]*>[\s\S]*?<\/\1>/gi, '');
+    // Remove all remaining HTML tags
+    text = text.replace(/<[^>]+>/g, ' ');
+    // Decode common HTML entities
+    text = text
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#039;/g, "'")
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&#(\d+);/g, (_m, code) => String.fromCharCode(parseInt(code)))
+        .replace(/&\w+;/g, ' ');
+    // Collapse whitespace
+    text = text.replace(/\s+/g, ' ').trim();
+    // Truncate to 10,000 chars
+    if (text.length > 10000) {
+        text = text.substring(0, 10000);
+    }
+    return text;
+}
+function extractImageFromHtml(html, url) {
+    // Try og:image
+    const ogMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i)
+        || html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i);
+    if (ogMatch)
+        return ogMatch[1];
+    // Try twitter:image
+    const twMatch = html.match(/<meta[^>]*name=["']twitter:image["'][^>]*content=["']([^"']+)["']/i)
+        || html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*name=["']twitter:image["']/i);
+    if (twMatch)
+        return twMatch[1];
+    // Try itemprop="image"
+    const itemMatch = html.match(/<meta[^>]*itemprop=["']image["'][^>]*content=["']([^"']+)["']/i);
+    if (itemMatch)
+        return itemMatch[1];
+    // YouTube thumbnail extraction
+    if (url) {
+        const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+        if (ytMatch)
+            return `https://img.youtube.com/vi/${ytMatch[1]}/maxresdefault.jpg`;
+    }
+    return null;
+}
+// Simple in-memory rate limiter: 10 req/min per IP
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW = 60_000;
+const RATE_LIMIT_MAX = 10;
+function isRateLimited(ip) {
+    const now = Date.now();
+    const timestamps = rateLimitMap.get(ip) || [];
+    const recent = timestamps.filter(t => now - t < RATE_LIMIT_WINDOW);
+    if (recent.length >= RATE_LIMIT_MAX) {
+        rateLimitMap.set(ip, recent);
+        return true;
+    }
+    recent.push(now);
+    rateLimitMap.set(ip, recent);
+    return false;
+}
+// POST /api/import-recipe — server-side AI recipe conversion via Gemini
+app.post('/api/import-recipe', async (req, res) => {
+    if (!GEMINI_API_KEY) {
+        res.status(503).json({ error: 'AI import not configured', code: 'NO_API_KEY' });
+        return;
+    }
+    const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+    if (isRateLimited(clientIp)) {
+        res.status(429).json({ error: 'Too many requests. Please try again in a minute.' });
+        return;
+    }
+    const { text, url, keepNote } = req.body;
+    if (!text && !url && !keepNote) {
+        res.status(400).json({ error: 'Provide one of: text, url, or keepNote' });
+        return;
+    }
+    let recipeText = '';
+    let sourceUrl;
+    let extractedImageUrl = null;
+    try {
+        if (text) {
+            recipeText = typeof text === 'string' ? text : '';
+        }
+        else if (url) {
+            if (typeof url !== 'string' || !isValidExternalUrl(url)) {
+                res.status(400).json({ error: 'Invalid URL' });
+                return;
+            }
+            sourceUrl = url;
+            // Fetch HTML (reuse proxy fetch pattern)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            const response = await fetch(url, {
+                headers: {
+                    'User-Agent': 'Mise Recipe Fetcher/1.0',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                },
+                signal: controller.signal,
+            });
+            clearTimeout(timeoutId);
+            if (!response.ok) {
+                res.status(400).json({ error: 'Could not fetch URL' });
+                return;
+            }
+            const html = await response.text();
+            recipeText = extractTextFromHtml(html);
+            extractedImageUrl = extractImageFromHtml(html, url);
+            if (recipeText.length < 100) {
+                res.status(400).json({ error: 'Could not extract enough content from URL' });
+                return;
+            }
+        }
+        else if (keepNote) {
+            const title = typeof keepNote.title === 'string' ? keepNote.title : '';
+            const content = typeof keepNote.content === 'string' ? keepNote.content : '';
+            recipeText = `Title: ${title}\n\nContent:\n${content}`;
+        }
+        if (!recipeText.trim()) {
+            res.status(400).json({ error: 'No recipe content provided' });
+            return;
+        }
+        // Build prompt
+        let prompt = CONVERSION_PROMPT;
+        if (sourceUrl) {
+            prompt += `Source URL: ${sourceUrl}\n\n`;
+        }
+        prompt += escapeForJSON(recipeText);
+        prompt += '\n\n---\n\nOutput ONLY the JSON object, no additional text or markdown code blocks.';
+        if (sourceUrl) {
+            prompt += `\n\nIMPORTANT: Include "sourceUrl": "${sourceUrl}" in your JSON output.`;
+        }
+        // Call Gemini API
+        const geminiController = new AbortController();
+        const geminiTimeout = setTimeout(() => geminiController.abort(), 30000);
+        const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseMimeType: 'application/json',
+                    temperature: 0.2,
+                    maxOutputTokens: 8192,
+                },
+            }),
+            signal: geminiController.signal,
+        });
+        clearTimeout(geminiTimeout);
+        if (!geminiRes.ok) {
+            const errBody = await geminiRes.text().catch(() => '');
+            console.error('Gemini API error:', geminiRes.status, errBody);
+            res.status(502).json({ error: 'AI service error' });
+            return;
+        }
+        const geminiData = await geminiRes.json();
+        const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!rawText) {
+            res.status(422).json({ error: 'AI returned empty response' });
+            return;
+        }
+        // Parse and validate
+        let cleanJson = sanitizeModelJSON(rawText.trim());
+        // Strip markdown fences if present
+        if (cleanJson.startsWith('```json'))
+            cleanJson = cleanJson.slice(7);
+        else if (cleanJson.startsWith('```'))
+            cleanJson = cleanJson.slice(3);
+        if (cleanJson.endsWith('```'))
+            cleanJson = cleanJson.slice(0, -3);
+        cleanJson = cleanJson.trim();
+        let parsed;
+        try {
+            parsed = JSON.parse(cleanJson);
+        }
+        catch {
+            res.status(422).json({ error: 'AI returned invalid JSON' });
+            return;
+        }
+        if (!parsed.title || !Array.isArray(parsed.ingredients) || !Array.isArray(parsed.steps)) {
+            res.status(422).json({ error: 'AI output missing required fields (title, ingredients, steps)' });
+            return;
+        }
+        // Inject extracted image/sourceUrl if AI didn't provide them
+        if (!parsed.image && extractedImageUrl) {
+            parsed.image = extractedImageUrl;
+        }
+        if (!parsed.sourceUrl && sourceUrl) {
+            parsed.sourceUrl = sourceUrl;
+        }
+        const responsePayload = { recipe: parsed };
+        if (extractedImageUrl) {
+            responsePayload.imageUrl = extractedImageUrl;
+        }
+        res.json(responsePayload);
+    }
+    catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') {
+            res.status(504).json({ error: 'Request timed out' });
+            return;
+        }
+        console.error('Import recipe error:', err);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 // Proxy endpoint for fetching external URLs (replaces public CORS proxies)

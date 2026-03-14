@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import styled from 'styled-components';
-import type { Recipe } from '../../types/Recipe';
+import type { Recipe, RecipeLanguage } from '../../types/Recipe';
 import { parseKeepHtml, isLikelyRecipe, type KeepNote } from '../../utils/keepHtmlParser';
 
 const colors = {
@@ -406,6 +406,54 @@ const ProgressIndicator = styled.div`
   color: ${colors.textMuted};
 `;
 
+const LoadingSpinner = styled.span`
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  display: inline-block;
+  animation: spin 1s linear infinite;
+`;
+
+const AutoConvertProgress = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  gap: 16px;
+`;
+
+const ProgressBar = styled.div`
+  width: 100%;
+  max-width: 400px;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+`;
+
+const ProgressFill = styled.div<{ $percent: number }>`
+  height: 100%;
+  width: ${(props) => props.$percent}%;
+  background: ${colors.primary};
+  border-radius: 4px;
+  transition: width 0.3s;
+`;
+
+const FailedNoteItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #fef2f2;
+  border-radius: 8px;
+  margin-top: 8px;
+  font-size: 13px;
+`;
+
 // Helper function to escape text for safe JSON string inclusion
 function escapeForJSON(text: string): string {
   return text
@@ -509,12 +557,42 @@ Note: The recipe text below has special characters pre-escaped for JSON (e.g., q
 
 `;
 
+// Map parsed AI JSON to a Recipe object
+function mapToRecipe(parsed: Record<string, unknown>): Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'> {
+  return {
+    title: parsed.title as string,
+    description: (parsed.description as string) || '',
+    aboutDish: parsed.aboutDish as string | undefined,
+    image: parsed.image as string | undefined,
+    prepTime: (parsed.prepTime as number) || 15,
+    cookTime: (parsed.cookTime as number) || 30,
+    difficulty: (parsed.difficulty as 'easy' | 'medium' | 'hard') || 'medium',
+    defaultServings: (parsed.defaultServings as number) || 4,
+    ingredients: parsed.ingredients as Recipe['ingredients'],
+    steps: parsed.steps as Recipe['steps'],
+    tags: (parsed.tags as string[]) || [],
+    category: (parsed.category as string) || 'Main Dishes',
+    author: parsed.author as string | undefined,
+    rating: parsed.rating as number | undefined,
+    reviewCount: parsed.reviewCount as number | undefined,
+    nutrition: parsed.nutrition as Recipe['nutrition'],
+    chefTip: parsed.chefTip as string | undefined,
+    language: (parsed.language as RecipeLanguage) || 'en',
+  };
+}
+
 interface KeepImportModalProps {
   onImport: (recipe: Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onClose: () => void;
 }
 
-type ImportStep = 'files' | 'select' | 'convert' | 'import';
+type ImportStep = 'files' | 'select' | 'converting' | 'convert' | 'import';
+
+interface FailedNote {
+  note: KeepNote;
+  noteIndex: number;
+  error: string;
+}
 
 export const KeepImportModal: React.FC<KeepImportModalProps> = ({ onImport, onClose }) => {
   const [step, setStep] = useState<ImportStep>('files');
@@ -531,6 +609,11 @@ export const KeepImportModal: React.FC<KeepImportModalProps> = ({ onImport, onCl
   const [isDragging, setIsDragging] = useState(false);
   const [importedCount, setImportedCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-conversion state
+  const [serverAvailable, setServerAvailable] = useState(true);
+  const [autoConvertIndex, setAutoConvertIndex] = useState(0);
+  const [failedNotes, setFailedNotes] = useState<FailedNote[]>([]);
 
   const selectedNotesArray = Array.from(selectedNotes)
     .sort((a, b) => a - b)
@@ -609,6 +692,72 @@ export const KeepImportModal: React.FC<KeepImportModalProps> = ({ onImport, onCl
     setSelectedNotes(new Set());
   };
 
+  // Auto-convert all selected notes via server
+  const startAutoConvert = useCallback(async () => {
+    setStep('converting');
+    setAutoConvertIndex(0);
+    setFailedNotes([]);
+    let converted = 0;
+    const failed: FailedNote[] = [];
+
+    for (let i = 0; i < selectedNotesArray.length; i++) {
+      setAutoConvertIndex(i);
+      const note = selectedNotesArray[i];
+
+      try {
+        const response = await fetch('/api/import-recipe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ keepNote: { title: note.title, content: note.content } }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          if (data.code === 'NO_API_KEY') {
+            // Server doesn't have AI — switch entire modal to manual mode
+            setServerAvailable(false);
+            setCurrentNoteIndex(0);
+            setStep('convert');
+            return;
+          }
+          failed.push({ note, noteIndex: i, error: data.error || 'Conversion failed' });
+          continue;
+        }
+
+        // Success — import directly
+        const recipe = mapToRecipe(data.recipe);
+        onImport(recipe);
+        converted++;
+      } catch {
+        failed.push({ note, noteIndex: i, error: 'Network error' });
+      }
+    }
+
+    setImportedCount(converted);
+    setFailedNotes(failed);
+
+    if (failed.length === 0) {
+      // All done successfully
+      onClose();
+    } else {
+      // Show results with failed notes
+      setAutoConvertIndex(selectedNotesArray.length);
+      // Stay on 'converting' step to show results
+    }
+  }, [selectedNotesArray, onImport, onClose]);
+
+  // Switch a failed note to manual conversion
+  const handleManualConvertNote = (failedNote: FailedNote) => {
+    // Find the index in selectedNotesArray
+    const idx = failedNote.noteIndex;
+    setCurrentNoteIndex(idx);
+    setJsonResult('');
+    setParsedRecipe(null);
+    setError(null);
+    setStep('convert');
+  };
+
   const handleCopyPrompt = async () => {
     try {
       await navigator.clipboard.writeText(fullPrompt);
@@ -654,27 +803,7 @@ export const KeepImportModal: React.FC<KeepImportModalProps> = ({ onImport, onCl
         throw new Error('Steps must be an array');
       }
 
-      const recipe: Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'> = {
-        title: parsed.title,
-        description: parsed.description || '',
-        aboutDish: parsed.aboutDish,
-        image: parsed.image,
-        prepTime: parsed.prepTime || 15,
-        cookTime: parsed.cookTime || 30,
-        difficulty: parsed.difficulty || 'medium',
-        defaultServings: parsed.defaultServings || 4,
-        ingredients: parsed.ingredients,
-        steps: parsed.steps,
-        tags: parsed.tags || [],
-        category: parsed.category || 'Main Dishes',
-        author: parsed.author,
-        rating: parsed.rating,
-        reviewCount: parsed.reviewCount,
-        nutrition: parsed.nutrition,
-        chefTip: parsed.chefTip,
-        language: parsed.language || 'en',
-      };
-
+      const recipe = mapToRecipe(parsed);
       setParsedRecipe(recipe);
       setStep('import');
     } catch (err) {
@@ -719,6 +848,7 @@ export const KeepImportModal: React.FC<KeepImportModalProps> = ({ onImport, onCl
         return 1;
       case 'select':
         return 2;
+      case 'converting':
       case 'convert':
         return 3;
       case 'import':
@@ -761,7 +891,7 @@ export const KeepImportModal: React.FC<KeepImportModalProps> = ({ onImport, onCl
               )}
               Choose Notes
             </Step>
-            <Step $active={step === 'convert'} $completed={isStepCompleted('convert')}>
+            <Step $active={step === 'convert' || step === 'converting'} $completed={isStepCompleted('convert')}>
               {isStepCompleted('convert') ? (
                 <span className="material-symbols-outlined">check</span>
               ) : (
@@ -855,14 +985,84 @@ export const KeepImportModal: React.FC<KeepImportModalProps> = ({ onImport, onCl
                   $primary
                   onClick={() => {
                     setCurrentNoteIndex(0);
-                    setStep('convert');
+                    if (serverAvailable) {
+                      startAutoConvert();
+                    } else {
+                      setStep('convert');
+                    }
                   }}
                   disabled={selectedNotes.size === 0}
                 >
-                  Convert {selectedNotes.size} Note{selectedNotes.size !== 1 ? 's' : ''}
-                  <span className="material-symbols-outlined">arrow_forward</span>
+                  {serverAvailable ? (
+                    <>
+                      <span className="material-symbols-outlined">auto_awesome</span>
+                      Auto-Convert {selectedNotes.size} Note{selectedNotes.size !== 1 ? 's' : ''}
+                    </>
+                  ) : (
+                    <>
+                      Convert {selectedNotes.size} Note{selectedNotes.size !== 1 ? 's' : ''}
+                      <span className="material-symbols-outlined">arrow_forward</span>
+                    </>
+                  )}
                 </Button>
               </ButtonRow>
+            </Section>
+          )}
+
+          {step === 'converting' && (
+            <Section>
+              {autoConvertIndex < selectedNotesArray.length ? (
+                // In progress
+                <AutoConvertProgress>
+                  <LoadingSpinner className="material-symbols-outlined" style={{ fontSize: '48px', color: colors.primary }}>
+                    progress_activity
+                  </LoadingSpinner>
+                  <div style={{ fontSize: '16px', fontWeight: 600, color: colors.textMain }}>
+                    Converting note {autoConvertIndex + 1} of {selectedNotesArray.length}...
+                  </div>
+                  <div style={{ fontSize: '13px', color: colors.textMuted }}>
+                    {selectedNotesArray[autoConvertIndex]?.title || '(Untitled)'}
+                  </div>
+                  <ProgressBar>
+                    <ProgressFill $percent={(autoConvertIndex / selectedNotesArray.length) * 100} />
+                  </ProgressBar>
+                </AutoConvertProgress>
+              ) : (
+                // Done — show results with failures
+                <>
+                  <SuccessMessage>
+                    <span className="material-symbols-outlined">check_circle</span>
+                    {importedCount} recipe{importedCount !== 1 ? 's' : ''} imported successfully
+                  </SuccessMessage>
+
+                  {failedNotes.length > 0 && (
+                    <div style={{ marginTop: '16px' }}>
+                      <Label>{failedNotes.length} note{failedNotes.length !== 1 ? 's' : ''} failed</Label>
+                      <HelpText>You can try converting these manually.</HelpText>
+                      {failedNotes.map((fn, i) => (
+                        <FailedNoteItem key={i}>
+                          <div>
+                            <strong>{fn.note.title || '(Untitled)'}</strong>
+                            <div style={{ fontSize: '12px', color: colors.textMuted }}>{fn.error}</div>
+                          </div>
+                          <Button
+                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                            onClick={() => handleManualConvertNote(fn)}
+                          >
+                            Try Manually
+                          </Button>
+                        </FailedNoteItem>
+                      ))}
+                    </div>
+                  )}
+
+                  <ButtonRow>
+                    <Button $primary onClick={onClose}>
+                      Done
+                    </Button>
+                  </ButtonRow>
+                </>
+              )}
             </Section>
           )}
 

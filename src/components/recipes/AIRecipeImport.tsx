@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
-import type { Recipe } from '../../types/Recipe';
+import type { Recipe, RecipeLanguage } from '../../types/Recipe';
 import { extractImageFromUrl } from '../../utils/imageExtractor';
 
 const colors = {
@@ -401,6 +401,29 @@ const SourceUrlBadge = styled.div`
   }
 `;
 
+const ImportingOverlay = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  gap: 16px;
+`;
+
+const ImportingText = styled.p`
+  font-size: 16px;
+  font-weight: 600;
+  color: ${colors.textMain};
+  margin: 0;
+`;
+
+const ImportingSubtext = styled.p`
+  font-size: 13px;
+  color: ${colors.textMuted};
+  margin: 0;
+`;
+
 // Helper function to safely get hostname from URL
 function getHostname(url: string): string {
   try {
@@ -533,6 +556,44 @@ Note: The recipe text below has special characters pre-escaped for JSON (e.g., q
 
 `;
 
+// Shared helper to map parsed AI JSON to a Recipe object
+function mapToRecipe(
+  parsed: Record<string, unknown>,
+  opts?: { extractedImage?: string; sourceUrl?: string }
+): Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'> {
+  let recipeImage = parsed.image as string | undefined;
+  if (!recipeImage && opts?.extractedImage) {
+    recipeImage = opts.extractedImage;
+  }
+
+  let recipeSourceUrl = parsed.sourceUrl as string | undefined;
+  if (!recipeSourceUrl && opts?.sourceUrl) {
+    recipeSourceUrl = ensureProtocol(opts.sourceUrl);
+  }
+
+  return {
+    title: parsed.title as string,
+    description: (parsed.description as string) || '',
+    aboutDish: parsed.aboutDish as string | undefined,
+    image: recipeImage,
+    prepTime: (parsed.prepTime as number) || 15,
+    cookTime: (parsed.cookTime as number) || 30,
+    difficulty: (parsed.difficulty as 'easy' | 'medium' | 'hard') || 'medium',
+    defaultServings: (parsed.defaultServings as number) || 4,
+    ingredients: parsed.ingredients as Recipe['ingredients'],
+    steps: parsed.steps as Recipe['steps'],
+    tags: (parsed.tags as string[]) || [],
+    category: (parsed.category as string) || 'Main Dishes',
+    author: parsed.author as string | undefined,
+    sourceUrl: recipeSourceUrl,
+    rating: parsed.rating as number | undefined,
+    reviewCount: parsed.reviewCount as number | undefined,
+    nutrition: parsed.nutrition as Recipe['nutrition'],
+    chefTip: parsed.chefTip as string | undefined,
+    language: (parsed.language as RecipeLanguage) || 'en',
+  };
+}
+
 interface AIRecipeImportProps {
   onImport: (recipe: Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onClose: () => void;
@@ -553,6 +614,8 @@ export const AIRecipeImport: React.FC<AIRecipeImportProps> = ({ onImport, onClos
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [parsedRecipe, setParsedRecipe] = useState<Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'> | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [serverAvailable, setServerAvailable] = useState(true);
 
   // Get the content to use in the prompt (either pasted text or fetched content)
   const contentForPrompt = inputMode === 'url' ? fetchedContent : recipeText;
@@ -690,6 +753,73 @@ export const AIRecipeImport: React.FC<AIRecipeImportProps> = ({ onImport, onClos
     setIsFetching(false);
   };
 
+  // Server-side AI import
+  const handleServerImport = async () => {
+    setIsImporting(true);
+    setError(null);
+
+    try {
+      const body: Record<string, unknown> = {};
+      if (inputMode === 'url' && sourceUrl.trim()) {
+        body.url = ensureProtocol(sourceUrl.trim());
+      } else {
+        body.text = recipeText;
+      }
+
+      const response = await fetch('/api/import-recipe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.code === 'NO_API_KEY') {
+          // Server doesn't have AI configured — fall back to manual flow
+          setServerAvailable(false);
+          setIsImporting(false);
+          // For URL mode, we need fetched content for manual flow
+          if (inputMode === 'url' && !fetchedContent) {
+            await fetchUrlContent();
+          }
+          setStep('prompt');
+          return;
+        }
+        throw new Error(data.error || 'Import failed');
+      }
+
+      // Success — map to recipe and show preview
+      const recipe = mapToRecipe(data.recipe, {
+        extractedImage: data.imageUrl,
+        sourceUrl: inputMode === 'url' ? sourceUrl.trim() : undefined,
+      });
+      setParsedRecipe(recipe);
+      setStep('result');
+    } catch (err) {
+      setError(
+        (err instanceof Error ? err.message : 'Import failed') +
+        ' — you can try the manual method instead.'
+      );
+    }
+
+    setIsImporting(false);
+  };
+
+  // Handle the "Import" / "Next" button from the input step
+  const handleInputNext = () => {
+    if (serverAvailable) {
+      handleServerImport();
+    } else {
+      // Manual fallback: need fetched content for URL mode
+      if (inputMode === 'url' && !fetchedContent) {
+        fetchUrlContent().then(() => setStep('prompt'));
+        return;
+      }
+      setStep('prompt');
+    }
+  };
+
   const handleParseJSON = () => {
     setError(null);
     try {
@@ -723,43 +853,10 @@ export const AIRecipeImport: React.FC<AIRecipeImportProps> = ({ onImport, onClos
         throw new Error('Steps must be an array');
       }
 
-      // Determine the image to use (AI output, extracted, or none)
-      let recipeImage = parsed.image;
-      if (!recipeImage && extractedImage) {
-        recipeImage = extractedImage;
-      }
-
-      // Determine source URL (from AI output or our tracked URL)
-      let recipeSourceUrl = parsed.sourceUrl;
-      if (!recipeSourceUrl && inputMode === 'url' && sourceUrl) {
-        recipeSourceUrl = sourceUrl.trim();
-        if (!recipeSourceUrl.startsWith('http://') && !recipeSourceUrl.startsWith('https://')) {
-          recipeSourceUrl = 'https://' + recipeSourceUrl;
-        }
-      }
-
-      // Set defaults for optional fields
-      const recipe: Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'> = {
-        title: parsed.title,
-        description: parsed.description || '',
-        aboutDish: parsed.aboutDish,
-        image: recipeImage,
-        prepTime: parsed.prepTime || 15,
-        cookTime: parsed.cookTime || 30,
-        difficulty: parsed.difficulty || 'medium',
-        defaultServings: parsed.defaultServings || 4,
-        ingredients: parsed.ingredients,
-        steps: parsed.steps,
-        tags: parsed.tags || [],
-        category: parsed.category || 'Main Dishes',
-        author: parsed.author,
-        sourceUrl: recipeSourceUrl,
-        rating: parsed.rating,
-        reviewCount: parsed.reviewCount,
-        nutrition: parsed.nutrition,
-        chefTip: parsed.chefTip,
-        language: parsed.language || 'en',
-      };
+      const recipe = mapToRecipe(parsed, {
+        extractedImage: extractedImage || undefined,
+        sourceUrl: inputMode === 'url' ? sourceUrl.trim() : undefined,
+      });
 
       setParsedRecipe(recipe);
     } catch (err) {
@@ -775,6 +872,9 @@ export const AIRecipeImport: React.FC<AIRecipeImportProps> = ({ onImport, onClos
     }
   };
 
+  // Determine which steps to show based on server availability
+  const showManualSteps = !serverAvailable || step === 'prompt';
+
   return (
     <Overlay onClick={onClose}>
       <Modal onClick={(e) => e.stopPropagation()}>
@@ -789,30 +889,59 @@ export const AIRecipeImport: React.FC<AIRecipeImportProps> = ({ onImport, onClos
         </Header>
 
         <Content>
-          <StepIndicator>
-            <Step $active={step === 'input'} $completed={step !== 'input'}>
-              {step !== 'input' ? (
-                <span className="material-symbols-outlined">check</span>
-              ) : (
-                '1 '
-              )}
-              Paste Recipe
-            </Step>
-            <Step $active={step === 'prompt'} $completed={step === 'result'}>
-              {step === 'result' ? (
-                <span className="material-symbols-outlined">check</span>
-              ) : (
-                '2 '
-              )}
-              Copy Prompt
-            </Step>
-            <Step $active={step === 'result'} $completed={false}>
-              {'3 '}
-              Import
-            </Step>
-          </StepIndicator>
+          {serverAvailable && !showManualSteps ? (
+            // Server-available: simplified 2-step indicator
+            <StepIndicator>
+              <Step $active={step === 'input' && !isImporting} $completed={step !== 'input' || isImporting}>
+                {step !== 'input' || isImporting ? (
+                  <span className="material-symbols-outlined">check</span>
+                ) : (
+                  '1 '
+                )}
+                Paste Recipe
+              </Step>
+              <Step $active={step === 'result' || isImporting} $completed={false}>
+                {'2 '}
+                Import
+              </Step>
+            </StepIndicator>
+          ) : (
+            // Manual fallback: 3-step indicator
+            <StepIndicator>
+              <Step $active={step === 'input'} $completed={step !== 'input'}>
+                {step !== 'input' ? (
+                  <span className="material-symbols-outlined">check</span>
+                ) : (
+                  '1 '
+                )}
+                Paste Recipe
+              </Step>
+              <Step $active={step === 'prompt'} $completed={step === 'result'}>
+                {step === 'result' ? (
+                  <span className="material-symbols-outlined">check</span>
+                ) : (
+                  '2 '
+                )}
+                Copy Prompt
+              </Step>
+              <Step $active={step === 'result'} $completed={false}>
+                {'3 '}
+                Import
+              </Step>
+            </StepIndicator>
+          )}
 
-          {step === 'input' && (
+          {isImporting && (
+            <ImportingOverlay>
+              <LoadingSpinner className="material-symbols-outlined" style={{ fontSize: '48px', color: colors.primary }}>
+                progress_activity
+              </LoadingSpinner>
+              <ImportingText>Converting recipe with AI...</ImportingText>
+              <ImportingSubtext>This usually takes a few seconds</ImportingSubtext>
+            </ImportingOverlay>
+          )}
+
+          {step === 'input' && !isImporting && (
             <Section>
               <InputModeToggle>
                 <InputModeTab $active={inputMode === 'text'} onClick={() => setInputMode('text')}>
@@ -859,8 +988,9 @@ Instructions:
                 <>
                   <Label>Import from URL</Label>
                   <HelpText>
-                    Enter a recipe URL and we'll fetch the content for the AI to convert.
-                    The source URL will be saved with your recipe.
+                    {serverAvailable
+                      ? "Enter a recipe URL and we'll automatically import it."
+                      : "Enter a recipe URL and we'll fetch the content for the AI to convert. The source URL will be saved with your recipe."}
                   </HelpText>
                   <UrlInputContainer>
                     <UrlInput
@@ -873,26 +1003,33 @@ Instructions:
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
-                          fetchUrlContent();
+                          if (serverAvailable) {
+                            handleInputNext();
+                          } else {
+                            fetchUrlContent();
+                          }
                         }
                       }}
                     />
-                    <FetchButton onClick={fetchUrlContent} disabled={!sourceUrl.trim() || isFetching}>
-                      {isFetching ? (
-                        <>
-                          <LoadingSpinner className="material-symbols-outlined">progress_activity</LoadingSpinner>
-                          Fetching...
-                        </>
-                      ) : (
-                        <>
-                          <span className="material-symbols-outlined">download</span>
-                          Fetch Content
-                        </>
-                      )}
-                    </FetchButton>
+                    {/* Only show fetch button in manual mode */}
+                    {!serverAvailable && (
+                      <FetchButton onClick={fetchUrlContent} disabled={!sourceUrl.trim() || isFetching}>
+                        {isFetching ? (
+                          <>
+                            <LoadingSpinner className="material-symbols-outlined">progress_activity</LoadingSpinner>
+                            Fetching...
+                          </>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined">download</span>
+                            Fetch Content
+                          </>
+                        )}
+                      </FetchButton>
+                    )}
                   </UrlInputContainer>
 
-                  {fetchedContent && (
+                  {!serverAvailable && fetchedContent && (
                     <>
                       <Label style={{ marginTop: '16px' }}>Fetched Content Preview</Label>
                       <FetchedContentPreview>
@@ -910,17 +1047,51 @@ Instructions:
                 </>
               )}
 
-              {error && <ErrorMessage>{error}</ErrorMessage>}
+              {error && (
+                <ErrorMessage>
+                  {error}
+                  {serverAvailable && (
+                    <Button
+                      style={{ marginTop: '8px', padding: '6px 12px', fontSize: '12px' }}
+                      onClick={() => {
+                        setServerAvailable(false);
+                        setError(null);
+                        if (inputMode === 'url' && !fetchedContent) {
+                          fetchUrlContent();
+                        }
+                        setStep('prompt');
+                      }}
+                    >
+                      Try manually instead
+                    </Button>
+                  )}
+                </ErrorMessage>
+              )}
 
               <ButtonRow>
                 <Button onClick={onClose}>Cancel</Button>
                 <Button
                   $primary
-                  onClick={() => setStep('prompt')}
-                  disabled={inputMode === 'text' ? !recipeText.trim() : !fetchedContent.trim()}
+                  onClick={handleInputNext}
+                  disabled={
+                    inputMode === 'text'
+                      ? !recipeText.trim()
+                      : serverAvailable
+                        ? !sourceUrl.trim()
+                        : !fetchedContent.trim()
+                  }
                 >
-                  Next
-                  <span className="material-symbols-outlined">arrow_forward</span>
+                  {serverAvailable ? (
+                    <>
+                      <span className="material-symbols-outlined">auto_awesome</span>
+                      Import with AI
+                    </>
+                  ) : (
+                    <>
+                      Next
+                      <span className="material-symbols-outlined">arrow_forward</span>
+                    </>
+                  )}
                 </Button>
               </ButtonRow>
             </Section>
@@ -955,39 +1126,8 @@ Instructions:
 
           {step === 'result' && (
             <Section>
-              <Label>Paste the JSON result</Label>
-              <HelpText>
-                Paste the JSON that the AI generated. We'll validate and import it.
-              </HelpText>
-              <TextArea
-                value={jsonResult}
-                onChange={(e) => {
-                  setJsonResult(e.target.value);
-                  setError(null);
-                  setParsedRecipe(null);
-                }}
-                placeholder='Paste the JSON here...
-
-{
-  "title": "Recipe Name",
-  "description": "...",
-  ...
-}'
-              />
-              <ButtonRow>
-                <Button onClick={() => setStep('prompt')}>
-                  <span className="material-symbols-outlined">arrow_back</span>
-                  Back
-                </Button>
-                <Button $primary onClick={handleParseJSON} disabled={!jsonResult.trim()}>
-                  <span className="material-symbols-outlined">check_circle</span>
-                  Validate JSON
-                </Button>
-              </ButtonRow>
-
-              {error && <ErrorMessage>{error}</ErrorMessage>}
-
-              {parsedRecipe && (
+              {/* If we came from server import, show preview directly */}
+              {parsedRecipe ? (
                 <>
                   <SuccessMessage>
                     <span className="material-symbols-outlined">check_circle</span>
@@ -1019,7 +1159,42 @@ Instructions:
                     )}
                   </PreviewCard>
                 </>
+              ) : (
+                <>
+                  {/* Manual flow: paste JSON result */}
+                  <Label>Paste the JSON result</Label>
+                  <HelpText>
+                    Paste the JSON that the AI generated. We'll validate and import it.
+                  </HelpText>
+                  <TextArea
+                    value={jsonResult}
+                    onChange={(e) => {
+                      setJsonResult(e.target.value);
+                      setError(null);
+                      setParsedRecipe(null);
+                    }}
+                    placeholder='Paste the JSON here...
+
+{
+  "title": "Recipe Name",
+  "description": "...",
+  ...
+}'
+                  />
+                  <ButtonRow>
+                    <Button onClick={() => setStep('prompt')}>
+                      <span className="material-symbols-outlined">arrow_back</span>
+                      Back
+                    </Button>
+                    <Button $primary onClick={handleParseJSON} disabled={!jsonResult.trim()}>
+                      <span className="material-symbols-outlined">check_circle</span>
+                      Validate JSON
+                    </Button>
+                  </ButtonRow>
+                </>
               )}
+
+              {error && <ErrorMessage>{error}</ErrorMessage>}
             </Section>
           )}
         </Content>
