@@ -848,7 +848,7 @@ export function DiscoverPage() {
   return (
     <PageContainer style={{ direction: isRTL ? 'rtl' : 'ltr' }}>
       <SEO
-        title={`${t('discover.title')} - Prepd`}
+        title={`${t('discover.title')} - Duckbook`}
         description="Browse and discover recipes and collections shared by the community."
         canonical="/discover"
         keywords="discover recipes, community recipes, public recipes, cooking"
@@ -860,7 +860,7 @@ export function DiscoverPage() {
             <LogoIcon className="logo-icon">
               <span className="material-symbols-outlined">restaurant_menu</span>
             </LogoIcon>
-            <LogoText>Prepd</LogoText>
+            <LogoText>Duckbook</LogoText>
           </LogoGroup>
 
           <Nav>

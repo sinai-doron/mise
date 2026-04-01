@@ -12,7 +12,7 @@ import type { ShoppingItem, IngredientCategory } from '../types/Recipe';
 import { CATEGORY_ORDER } from '../types/Recipe';
 import { getCurrencyConfig, formatPrice } from '../types/ShoppingList';
 
-// Color palette (matching Prepd design)
+// Color palette (matching Duckbook design)
 const colors = {
   primary: '#2C3E50',
   primaryDark: '#1a252f',
@@ -551,7 +551,7 @@ export function ShoppingListPage() {
   return (
     <PageContainer>
       <SEO
-        title="Shopping List - Prepd"
+        title="Shopping List - Duckbook"
         description="Your grocery shopping list organized by category."
         canonical="/shopping"
         keywords="shopping list, grocery list, recipes"
@@ -563,7 +563,7 @@ export function ShoppingListPage() {
             <LogoIcon>
               <span className="material-symbols-outlined">soup_kitchen</span>
             </LogoIcon>
-            <LogoText>Prepd</LogoText>
+            <LogoText>Duckbook</LogoText>
           </LogoGroup>
 
           <Nav>

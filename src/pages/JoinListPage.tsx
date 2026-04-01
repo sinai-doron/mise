@@ -314,7 +314,7 @@ export function JoinListPage() {
   if (authLoading || isLoading) {
     return (
       <Container>
-        <SEO title="Join Shopping List - Prepd" description="Join a shared shopping list." />
+        <SEO title="Join Shopping List - Duckbook" description="Join a shared shopping list." />
         <Card>
           <CardHeader>
             <IconCircle>
@@ -336,8 +336,8 @@ export function JoinListPage() {
   return (
     <Container>
       <SEO
-        title={list ? `Join "${list.name}" - Prepd` : 'Join Shopping List - Prepd'}
-        description={list ? `Join ${list.ownerName}'s shopping list "${list.name}" on Prepd.` : 'Join a shared shopping list.'}
+        title={list ? `Join "${list.name}" - Duckbook` : 'Join Shopping List - Duckbook'}
+        description={list ? `Join ${list.ownerName}'s shopping list "${list.name}" on Duckbook.` : 'Join a shared shopping list.'}
       />
       <Card>
         <CardHeader>

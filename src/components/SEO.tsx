@@ -12,14 +12,14 @@ interface SEOProps {
 const BASE_URL = 'https://getprepd.app';
 
 export const SEO: React.FC<SEOProps> = ({
-  title = 'Prepd - Recipe Manager',
-  description = 'Manage your recipes, plan meals, and create shopping lists with Prepd.',
+  title = 'Duckbook - Recipe Manager',
+  description = 'Manage your recipes, plan meals, and create shopping lists with Duckbook.',
   canonical = '',
   ogImage = '/og-image.svg',
   keywords = 'recipe manager, meal planning, shopping list, cooking',
   type = 'website',
 }) => {
-  const fullTitle = title.includes('Prepd') ? title : `${title} | Prepd`;
+  const fullTitle = title.includes('Duckbook') ? title : `${title} | Duckbook`;
   const fullUrl = `${BASE_URL}${canonical}`;
   const fullImageUrl = ogImage.startsWith('http') ? ogImage : `${BASE_URL}${ogImage}`;
 

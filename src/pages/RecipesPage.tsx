@@ -63,7 +63,7 @@ const HeaderContent = styled.div`
 const LogoGroup = styled.div`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   cursor: pointer;
   transition: transform 0.2s;
 
@@ -72,20 +72,11 @@ const LogoGroup = styled.div`
   }
 `;
 
-const LogoIcon = styled.div`
-  background: ${colors.primary};
-  color: white;
-  padding: 6px;
-  border-radius: 8px;
+const LogoIcon = styled.img`
+  width: 50px;
+  height: 50px;
   transform: rotate(3deg);
   transition: transform 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  .material-symbols-outlined {
-    font-size: 20px;
-  }
 `;
 
 const LogoText = styled.h1`
@@ -93,7 +84,7 @@ const LogoText = styled.h1`
   font-size: 24px;
   font-weight: 700;
   color: ${colors.primary};
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Nunito', sans-serif;
   letter-spacing: -0.02em;
 `;
 
@@ -347,7 +338,7 @@ const EmptyState = styled.div`
     margin: 0 0 8px 0;
     font-size: 18px;
     color: ${colors.textMain};
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: 'Nunito', sans-serif;
   }
 
   p {
@@ -419,7 +410,7 @@ export function RecipesPage() {
     };
   }, [initializeFirebaseSync, user]);
 
-  // Escape key handler - navigate back within Prepd app
+  // Escape key handler - navigate back within Duckbook app
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -427,7 +418,7 @@ export function RecipesPage() {
           // Go back to recipe list
           navigate('/recipes');
         }
-        // Don't navigate away from Prepd on escape when viewing list
+        // Don't navigate away from Duckbook on escape when viewing list
       }
     };
 
@@ -521,7 +512,7 @@ export function RecipesPage() {
   return (
     <PageContainer style={{ direction: isRTL ? 'rtl' : 'ltr' }}>
       <SEO
-        title="Prepd - Recipe Manager"
+        title="Duckbook - Recipe Manager"
         description="Organize your recipes with scaling, grocery lists, and step-by-step cooking mode."
         canonical="/recipes"
         keywords="recipes, cooking, meal planning, grocery list"
@@ -530,10 +521,8 @@ export function RecipesPage() {
       <Header>
         <HeaderContent>
           <LogoGroup onClick={handleGoHome}>
-            <LogoIcon className="logo-icon">
-              <span className="material-symbols-outlined">restaurant_menu</span>
-            </LogoIcon>
-            <LogoText>Prepd</LogoText>
+            <LogoIcon className="logo-icon" src="/logo.png" alt="Duckbook" />
+            <LogoText>Duckbook</LogoText>
           </LogoGroup>
 
           <Nav>

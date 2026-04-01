@@ -1113,7 +1113,7 @@ export const CookingContainer: React.FC<CookingContainerProps> = ({
           <LogoIcon>
             <span className="material-symbols-outlined">skillet</span>
           </LogoIcon>
-          <LogoText>Prepd</LogoText>
+          <LogoText>Duckbook</LogoText>
           {isWakeLockActive && (
             <WakeLockIndicator title={t('cooking.screenWillStayOn')}>
               <span className="material-symbols-outlined">visibility</span>

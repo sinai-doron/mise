@@ -87,7 +87,7 @@ function generateOgTags(data: {
   const title = escapeHtml(data.title);
   const description = escapeHtml(data.description);
   const image = data.image || '';
-  const siteName = 'Prepd - Recipe Manager';
+  const siteName = 'Duckbook - Recipe Manager';
   const type = data.type || 'article';
 
   return `
@@ -151,7 +151,7 @@ app.get('/recipe/:shareId', async (req, res) => {
         // Update the title
         html = html.replace(
           /<title>.*?<\/title>/,
-          `<title>${escapeHtml(recipe.title)} | Prepd</title>`
+          `<title>${escapeHtml(recipe.title)} | Duckbook</title>`
         );
 
         res.send(html);
@@ -213,7 +213,7 @@ app.get('/u/:collectionId', async (req, res) => {
         // Update the title
         html = html.replace(
           /<title>.*?<\/title>/,
-          `<title>${escapeHtml(title)} | Prepd</title>`
+          `<title>${escapeHtml(title)} | Duckbook</title>`
         );
 
         res.send(html);
@@ -251,7 +251,7 @@ app.get('/shopping/join/:inviteCode', async (req, res) => {
       let html = readFileSync(indexPath, 'utf-8');
 
       const ownerName = list.ownerName || 'Someone';
-      const title = `Join "${list.name}" on Prepd`;
+      const title = `Join "${list.name}" on Duckbook`;
       const description = `${ownerName} invited you to collaborate on their shopping list "${list.name}".`;
 
       const ogTags = generateOgTags({
@@ -264,7 +264,7 @@ app.get('/shopping/join/:inviteCode', async (req, res) => {
       html = html.replace('</head>', `${ogTags}\n  </head>`);
       html = html.replace(
         /<title>.*?<\/title>/,
-        `<title>${escapeHtml(title)} | Prepd</title>`
+        `<title>${escapeHtml(title)} | Duckbook</title>`
       );
 
       res.send(html);
@@ -539,7 +539,7 @@ app.post('/api/import-recipe', async (req, res) => {
     const geminiTimeout = setTimeout(() => geminiController.abort(), 30000);
 
     const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

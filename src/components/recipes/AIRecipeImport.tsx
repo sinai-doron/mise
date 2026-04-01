@@ -797,10 +797,8 @@ export const AIRecipeImport: React.FC<AIRecipeImportProps> = ({ onImport, onClos
       setParsedRecipe(recipe);
       setStep('result');
     } catch (err) {
-      setError(
-        (err instanceof Error ? err.message : 'Import failed') +
-        ' — you can try the manual method instead.'
-      );
+      const msg = err instanceof Error ? err.message : 'Import failed';
+      setError(msg);
     }
 
     setIsImporting(false);

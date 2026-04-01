@@ -595,7 +595,7 @@ export function CollectionsPage() {
   return (
     <PageContainer style={{ direction: isRTL ? 'rtl' : 'ltr' }}>
       <SEO
-        title="Collections - Prepd"
+        title="Collections - Duckbook"
         description="Organize your favorite recipes into collections."
         canonical="/collections"
         keywords="recipe collections, recipe organization, favorites"
@@ -607,7 +607,7 @@ export function CollectionsPage() {
             <LogoIcon className="logo-icon">
               <span className="material-symbols-outlined">restaurant_menu</span>
             </LogoIcon>
-            <LogoText>Prepd</LogoText>
+            <LogoText>Duckbook</LogoText>
           </LogoGroup>
 
           <Nav>

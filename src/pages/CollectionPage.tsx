@@ -63,6 +63,9 @@ const NavBrand = styled.div`
   font-size: 20px;
   font-weight: 700;
   color: ${colors.primary};
+  display: flex;
+  align-items: center;
+  gap: 4px;
 `;
 
 const Container = styled.div`
@@ -306,7 +309,7 @@ const EmptyState = styled.div`
 const EditButton = styled.button`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   padding: 10px 20px;
   background: ${colors.primary};
   color: white;
@@ -508,7 +511,7 @@ export function CollectionPage() {
             <HomeButton onClick={() => navigate('/')} title={t('common.home', 'Home')}>
               <span className="material-symbols-outlined">home</span>
             </HomeButton>
-            <NavBrand>Prepd</NavBrand>
+            <NavBrand><img src="/logo.png" alt="Duckbook" style={{ width: 50, height: 50 }} />Duckbook</NavBrand>
           </NavLeft>
         </NavBar>
         <EditModeContainer>
@@ -546,7 +549,7 @@ export function CollectionPage() {
           <HomeButton onClick={() => navigate('/')} title={t('common.home', 'Home')}>
             <span className="material-symbols-outlined">home</span>
           </HomeButton>
-          <NavBrand>Prepd</NavBrand>
+          <NavBrand><img src="/logo.png" alt="Duckbook" style={{ width: 50, height: 50 }} />Duckbook</NavBrand>
         </NavLeft>
       </NavBar>
 

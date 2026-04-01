@@ -412,7 +412,7 @@ export function MealPlanPage() {
   return (
     <PageContainer style={{ direction: isRTL ? 'rtl' : 'ltr' }}>
       <SEO
-        title="Meal Plan - Prepd"
+        title="Meal Plan - Duckbook"
         description="Plan your weekly meals with our drag-and-drop meal planner."
         canonical="/meal-plan"
         keywords="meal planning, weekly meals, recipe planner"
@@ -424,7 +424,7 @@ export function MealPlanPage() {
             <LogoIcon className="logo-icon">
               <span className="material-symbols-outlined">restaurant_menu</span>
             </LogoIcon>
-            <LogoText>Prepd</LogoText>
+            <LogoText>Duckbook</LogoText>
           </LogoGroup>
 
           <Nav>

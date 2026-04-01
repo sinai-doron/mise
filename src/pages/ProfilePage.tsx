@@ -395,8 +395,8 @@ export function ProfilePage() {
   return (
     <PageContainer>
       <SEO
-        title="Profile - Prepd"
-        description="Manage your Prepd profile settings"
+        title="Profile - Duckbook"
+        description="Manage your Duckbook profile settings"
         canonical="/profile"
       />
 

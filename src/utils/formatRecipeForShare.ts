@@ -52,7 +52,7 @@ export function formatRecipeForShare(recipe: Recipe, scale: number = 1): string 
 
   // Footer
   lines.push('');
-  lines.push(rtl ? '👨‍🍳 נשלח מ-Prepd' : '👨‍🍳 Shared from Prepd');
+  lines.push(rtl ? '👨‍🍳 נשלח מ-Duckbook' : '👨‍🍳 Shared from Duckbook');
 
   return lines.join('\n');
 }

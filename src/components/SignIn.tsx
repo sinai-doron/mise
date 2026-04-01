@@ -107,9 +107,9 @@ export function SignIn() {
     <Container>
       <Card>
         <Logo>
-          <span className="material-symbols-outlined">restaurant_menu</span>
+          <img src="/logo.png" alt="Duckbook" style={{ width: 50, height: 50 }} />
         </Logo>
-        <Title>Prepd</Title>
+        <Title>Duckbook</Title>
         <Subtitle>Your personal recipe manager</Subtitle>
 
         <SignInButton onClick={handleSignIn} disabled={loading}>
