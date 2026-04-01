@@ -16,12 +16,12 @@ const TriggerButton = styled.button`
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  background: rgba(44, 62, 80, 0.08);
-  color: #333333;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
   transition: background 0.15s;
 
   &:hover {
-    background: rgba(44, 62, 80, 0.14);
+    background: rgba(255, 255, 255, 0.18);
   }
 
   .flag {

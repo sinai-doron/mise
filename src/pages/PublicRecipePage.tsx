@@ -277,6 +277,7 @@ export function PublicRecipePage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const addRecipe = useRecipeStore((state) => state.addRecipe);
+  const userRecipes = useRecipeStore((state) => state.recipes);
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
@@ -285,6 +286,17 @@ export function PublicRecipePage() {
   const [added, setAdded] = useState(false);
 
   const rtl = recipe ? isRTL(recipe.language as RecipeLanguage) : false;
+
+  // If the logged-in user owns this recipe, redirect to the in-app view
+  useEffect(() => {
+    if (user && id && userRecipes.length > 0) {
+      const ownRecipe = userRecipes.find((r) => r.id === id || r.shareId === id);
+      if (ownRecipe) {
+        navigate(`/recipes/${ownRecipe.id}`, { replace: true });
+        return;
+      }
+    }
+  }, [user, id, userRecipes, navigate]);
 
   useEffect(() => {
     const fetchRecipe = async () => {

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 import { useLanguage } from '../i18n/useLanguage';
-import LanguageSelector from '../components/LanguageSelector';
+import { AppHeader } from '../components/AppHeader';
 import { SEO } from '../components/SEO';
 import { useRecipeStore } from '../stores/recipeStore';
 import { useAuth } from '../firebase';
@@ -13,208 +13,17 @@ import { RecipeDetail } from '../components/recipes/RecipeDetail';
 import { RecipeForm } from '../components/recipes/RecipeForm';
 import { AIRecipeImport } from '../components/recipes/AIRecipeImport';
 import { KeepImportModal } from '../components/recipes/KeepImportModal';
-import { UserMenu } from '../components/UserMenu';
 import type { Recipe } from '../types/Recipe';
-
-// Color palette
-const colors = {
-  primary: '#2C3E50',
-  primaryDark: '#1a252f',
-  backgroundLight: '#F0F4F8',
-  surface: '#ffffff',
-  textMain: '#333333',
-  textMuted: '#64748b',
-};
+import { colors, fonts } from '../styles/theme';
 
 const PageContainer = styled.div`
   min-height: 100vh;
-  background: ${colors.backgroundLight};
+  background: ${colors.background};
   display: flex;
   flex-direction: column;
-  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${fonts.body};
   overflow-x: hidden;
 `;
-
-const Header = styled.header`
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  width: 100%;
-  background: rgba(240, 244, 248, 0.9);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(44, 62, 80, 0.1);
-  transition: all 0.3s;
-`;
-
-const HeaderContent = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 16px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-
-  @media (min-width: 768px) {
-    padding: 16px 32px;
-  }
-`;
-
-const LogoGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  cursor: pointer;
-  transition: transform 0.2s;
-
-  &:hover .logo-icon {
-    transform: rotate(6deg);
-  }
-`;
-
-const LogoIcon = styled.img`
-  width: 50px;
-  height: 50px;
-  transform: rotate(3deg);
-  transition: transform 0.2s;
-`;
-
-const LogoText = styled.h1`
-  margin: 0;
-  font-size: 24px;
-  font-weight: 700;
-  color: ${colors.primary};
-  font-family: 'Nunito', sans-serif;
-  letter-spacing: -0.02em;
-`;
-
-const Nav = styled.nav`
-  display: none;
-  align-items: center;
-  gap: 32px;
-
-  @media (min-width: 768px) {
-    display: flex;
-  }
-`;
-
-const NavLink = styled.a<{ $active?: boolean }>`
-  font-size: 14px;
-  font-weight: ${(props) => (props.$active ? '600' : '500')};
-  color: ${(props) => (props.$active ? colors.primary : colors.textMain)};
-  text-decoration: none;
-  cursor: pointer;
-  transition: color 0.15s;
-  padding-bottom: 4px;
-  border-bottom: 2px solid ${(props) => (props.$active ? colors.primary : 'transparent')};
-
-  &:hover {
-    color: ${colors.primary};
-  }
-`;
-
-const HeaderRight = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 16px;
-`;
-
-const MobileMenuButton = styled.button`
-  display: flex;
-  color: ${colors.textMain};
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-
-  @media (min-width: 768px) {
-    display: none;
-  }
-`;
-
-const MobileNav = styled.nav<{ $open: boolean }>`
-  display: ${({ $open }) => ($open ? 'flex' : 'none')};
-  flex-direction: column;
-  background: ${colors.surface};
-  border-top: 1px solid rgba(44, 62, 80, 0.1);
-  padding: 8px 0;
-
-  @media (min-width: 768px) {
-    display: none;
-  }
-`;
-
-const MobileNavLink = styled.a<{ $active?: boolean }>`
-  padding: 14px 24px;
-  font-size: 15px;
-  font-weight: ${({ $active }) => ($active ? '600' : '500')};
-  color: ${({ $active }) => ($active ? colors.primary : colors.textMain)};
-  text-decoration: none;
-  cursor: pointer;
-  border-left: 3px solid ${({ $active }) => ($active ? colors.primary : 'transparent')};
-
-  &:hover {
-    background: rgba(44, 62, 80, 0.04);
-    color: ${colors.primary};
-  }
-`;
-
-const AddButton = styled.button`
-  display: none;
-  align-items: center;
-  gap: 8px;
-  background: ${colors.primary};
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: ${colors.primaryDark};
-    transform: translateY(-1px);
-  }
-
-  .material-symbols-outlined {
-    font-size: 18px;
-  }
-
-  @media (min-width: 768px) {
-    display: flex;
-  }
-`;
-
-const AIImportButton = styled.button`
-  display: none;
-  align-items: center;
-  gap: 6px;
-  background: transparent;
-  color: ${colors.primary};
-  border: 1px solid rgba(44, 62, 80, 0.2);
-  padding: 10px 16px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: rgba(44, 62, 80, 0.05);
-    border-color: ${colors.primary};
-  }
-
-  .material-symbols-outlined {
-    font-size: 18px;
-  }
-
-  @media (min-width: 768px) {
-    display: flex;
-  }
-`;
-
 
 const MainContent = styled.main`
   flex: 1;
@@ -389,7 +198,6 @@ export function RecipesPage() {
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
-  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isAIImportOpen, setIsAIImportOpen] = useState(false);
   const [isKeepImportOpen, setIsKeepImportOpen] = useState(false);
@@ -498,11 +306,6 @@ export function RecipesPage() {
     }
   };
 
-  // Navigate to home (landing page)
-  const handleGoHome = () => {
-    navigate('/');
-  };
-
   // Find selected recipe from URL param
   const selectedRecipe = recipeId ? recipes.find((r) => r.id === recipeId) : null;
 
@@ -518,49 +321,11 @@ export function RecipesPage() {
         keywords="recipes, cooking, meal planning, grocery list"
       />
 
-      <Header>
-        <HeaderContent>
-          <LogoGroup onClick={handleGoHome}>
-            <LogoIcon className="logo-icon" src="/logo.png" alt="Duckbook" />
-            <LogoText>Duckbook</LogoText>
-          </LogoGroup>
-
-          <Nav>
-            <NavLink $active={!recipeId} onClick={() => navigate('/recipes')}>{t('nav.recipes')}</NavLink>
-            <NavLink onClick={() => navigate('/meal-plan')}>{t('nav.mealPlan')}</NavLink>
-            <NavLink onClick={() => navigate('/shopping')}>{t('nav.shopping')}</NavLink>
-            <NavLink onClick={() => navigate('/collections')}>{t('nav.collections')}</NavLink>
-            <NavLink onClick={() => navigate('/discover')}>{t('discover.title')}</NavLink>
-          </Nav>
-
-          <HeaderRight>
-            <LanguageSelector />
-            <MobileMenuButton onClick={() => setIsMobileNavOpen(o => !o)}>
-              <span className="material-symbols-outlined">{isMobileNavOpen ? 'close' : 'menu'}</span>
-            </MobileMenuButton>
-            <AIImportButton onClick={() => setIsKeepImportOpen(true)}>
-              <span className="material-symbols-outlined">upload_file</span>
-              Import Keep
-            </AIImportButton>
-            <AIImportButton onClick={() => setIsAIImportOpen(true)}>
-              <span className="material-symbols-outlined">auto_awesome</span>
-              {t('nav.aiImport')}
-            </AIImportButton>
-            <AddButton onClick={handleAddRecipe}>
-              <span className="material-symbols-outlined">add</span>
-              {t('nav.addRecipe')}
-            </AddButton>
-            <UserMenu />
-          </HeaderRight>
-        </HeaderContent>
-        <MobileNav $open={isMobileNavOpen}>
-          <MobileNavLink $active={!recipeId} onClick={() => { navigate('/recipes'); setIsMobileNavOpen(false); }}>{t('nav.recipes')}</MobileNavLink>
-          <MobileNavLink onClick={() => { navigate('/meal-plan'); setIsMobileNavOpen(false); }}>{t('nav.mealPlan')}</MobileNavLink>
-          <MobileNavLink onClick={() => { navigate('/shopping'); setIsMobileNavOpen(false); }}>{t('nav.shopping')}</MobileNavLink>
-          <MobileNavLink onClick={() => { navigate('/collections'); setIsMobileNavOpen(false); }}>{t('nav.collections')}</MobileNavLink>
-          <MobileNavLink onClick={() => { navigate('/discover'); setIsMobileNavOpen(false); }}>{t('discover.title')}</MobileNavLink>
-        </MobileNav>
-      </Header>
+      <AppHeader
+        activePage="recipes"
+        onAIImport={() => setIsAIImportOpen(true)}
+        onAdd={handleAddRecipe}
+      />
 
       <MainContent>
         {!selectedRecipe && (

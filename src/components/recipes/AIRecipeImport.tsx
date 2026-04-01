@@ -708,7 +708,7 @@ export const AIRecipeImport: React.FC<AIRecipeImportProps> = ({ onImport, onClos
     try {
       const html = await fetchWithProxy(normalizedUrl);
       if (!html) {
-        setError('Could not fetch content from this URL. Try pasting the recipe text directly.');
+        setError(t('aiImport.fetchError'));
         setIsFetching(false);
         return;
       }
@@ -744,10 +744,10 @@ export const AIRecipeImport: React.FC<AIRecipeImportProps> = ({ onImport, onClos
           setExtractedImage(imageResult.imageUrl);
         }
       } else {
-        setError('Could not fetch content from this URL. Try pasting the recipe text directly.');
+        setError(t('aiImport.fetchError'));
       }
     } catch {
-      setError('Could not fetch content from this URL. Try pasting the recipe text directly.');
+      setError(t('aiImport.fetchError'));
     }
 
     setIsFetching(false);
@@ -879,7 +879,7 @@ export const AIRecipeImport: React.FC<AIRecipeImportProps> = ({ onImport, onClos
         <Header>
           <Title>
             <span className="material-symbols-outlined">auto_awesome</span>
-            AI Recipe Import
+            {t('aiImport.title')}
           </Title>
           <CloseButton onClick={onClose}>
             <span className="material-symbols-outlined">close</span>
@@ -888,7 +888,6 @@ export const AIRecipeImport: React.FC<AIRecipeImportProps> = ({ onImport, onClos
 
         <Content>
           {serverAvailable && !showManualSteps ? (
-            // Server-available: simplified 2-step indicator
             <StepIndicator>
               <Step $active={step === 'input' && !isImporting} $completed={step !== 'input' || isImporting}>
                 {step !== 'input' || isImporting ? (
@@ -896,15 +895,14 @@ export const AIRecipeImport: React.FC<AIRecipeImportProps> = ({ onImport, onClos
                 ) : (
                   '1 '
                 )}
-                Paste Recipe
+                {t('aiImport.stepPaste')}
               </Step>
               <Step $active={step === 'result' || isImporting} $completed={false}>
                 {'2 '}
-                Import
+                {t('aiImport.stepImport')}
               </Step>
             </StepIndicator>
           ) : (
-            // Manual fallback: 3-step indicator
             <StepIndicator>
               <Step $active={step === 'input'} $completed={step !== 'input'}>
                 {step !== 'input' ? (
@@ -912,7 +910,7 @@ export const AIRecipeImport: React.FC<AIRecipeImportProps> = ({ onImport, onClos
                 ) : (
                   '1 '
                 )}
-                Paste Recipe
+                {t('aiImport.stepPaste')}
               </Step>
               <Step $active={step === 'prompt'} $completed={step === 'result'}>
                 {step === 'result' ? (
@@ -920,11 +918,11 @@ export const AIRecipeImport: React.FC<AIRecipeImportProps> = ({ onImport, onClos
                 ) : (
                   '2 '
                 )}
-                Copy Prompt
+                {t('aiImport.stepCopyPrompt')}
               </Step>
               <Step $active={step === 'result'} $completed={false}>
                 {'3 '}
-                Import
+                {t('aiImport.stepImport')}
               </Step>
             </StepIndicator>
           )}
@@ -934,8 +932,8 @@ export const AIRecipeImport: React.FC<AIRecipeImportProps> = ({ onImport, onClos
               <LoadingSpinner className="material-symbols-outlined" style={{ fontSize: '48px', color: colors.primary }}>
                 progress_activity
               </LoadingSpinner>
-              <ImportingText>Converting recipe with AI...</ImportingText>
-              <ImportingSubtext>This usually takes a few seconds</ImportingSubtext>
+              <ImportingText>{t('aiImport.converting')}</ImportingText>
+              <ImportingSubtext>{t('aiImport.convertingSub')}</ImportingSubtext>
             </ImportingOverlay>
           )}
 
@@ -944,56 +942,36 @@ export const AIRecipeImport: React.FC<AIRecipeImportProps> = ({ onImport, onClos
               <InputModeToggle>
                 <InputModeTab $active={inputMode === 'text'} onClick={() => setInputMode('text')}>
                   <span className="material-symbols-outlined">edit_note</span>
-                  Paste Text
+                  {t('aiImport.pasteText')}
                 </InputModeTab>
                 <InputModeTab $active={inputMode === 'url'} onClick={() => setInputMode('url')}>
                   <span className="material-symbols-outlined">link</span>
-                  From URL
+                  {t('aiImport.fromUrl')}
                 </InputModeTab>
               </InputModeToggle>
 
               {inputMode === 'text' ? (
                 <>
-                  <Label>Paste your recipe</Label>
-                  <HelpText>
-                    Paste any recipe text - from a website, cookbook, or your own notes.
-                    The AI will convert it to our format.
-                  </HelpText>
+                  <Label>{t('aiImport.pasteLabel')}</Label>
+                  <HelpText>{t('aiImport.pasteHelp')}</HelpText>
                   <TextArea
                     value={recipeText}
                     onChange={(e) => setRecipeText(e.target.value)}
-                    placeholder="Paste your recipe here...
-
-Example:
-Classic Spaghetti Carbonara
-
-Ingredients:
-- 400g spaghetti
-- 200g guanciale or pancetta
-- 4 egg yolks
-- 100g pecorino romano
-- Black pepper
-
-Instructions:
-1. Cook pasta in salted water
-2. Fry guanciale until crispy
-3. Mix egg yolks with cheese
-4. Combine everything off heat
-..."
+                    placeholder={t('aiImport.pastePlaceholder')}
                   />
                 </>
               ) : (
                 <>
-                  <Label>Import from URL</Label>
+                  <Label>{t('aiImport.urlLabel')}</Label>
                   <HelpText>
                     {serverAvailable
-                      ? "Enter a recipe URL and we'll automatically import it."
-                      : "Enter a recipe URL and we'll fetch the content for the AI to convert. The source URL will be saved with your recipe."}
+                      ? t('aiImport.urlHelpServer')
+                      : t('aiImport.urlHelpManual')}
                   </HelpText>
                   <UrlInputContainer>
                     <UrlInput
                       type="url"
-                      placeholder="https://example.com/recipe..."
+                      placeholder={t('aiImport.urlPlaceholder')}
                       value={sourceUrl}
                       onChange={(e) => {
                         setSourceUrl(e.target.value);
@@ -1009,18 +987,17 @@ Instructions:
                         }
                       }}
                     />
-                    {/* Only show fetch button in manual mode */}
                     {!serverAvailable && (
                       <FetchButton onClick={fetchUrlContent} disabled={!sourceUrl.trim() || isFetching}>
                         {isFetching ? (
                           <>
                             <LoadingSpinner className="material-symbols-outlined">progress_activity</LoadingSpinner>
-                            Fetching...
+                            {t('aiImport.fetching')}
                           </>
                         ) : (
                           <>
                             <span className="material-symbols-outlined">download</span>
-                            Fetch Content
+                            {t('aiImport.fetchContent')}
                           </>
                         )}
                       </FetchButton>
@@ -1029,7 +1006,7 @@ Instructions:
 
                   {!serverAvailable && fetchedContent && (
                     <>
-                      <Label style={{ marginTop: '16px' }}>Fetched Content Preview</Label>
+                      <Label style={{ marginTop: '16px' }}>{t('aiImport.fetchedPreview')}</Label>
                       <FetchedContentPreview>
                         {fetchedContent.substring(0, 1000)}
                         {fetchedContent.length > 1000 && '...'}
@@ -1037,7 +1014,7 @@ Instructions:
                       {extractedImage && (
                         <SourceUrlBadge>
                           <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>image</span>
-                          Image detected and will be included
+                          {t('aiImport.imageDetected')}
                         </SourceUrlBadge>
                       )}
                     </>
@@ -1060,14 +1037,14 @@ Instructions:
                         setStep('prompt');
                       }}
                     >
-                      Try manually instead
+                      {t('aiImport.tryManually')}
                     </Button>
                   )}
                 </ErrorMessage>
               )}
 
               <ButtonRow>
-                <Button onClick={onClose}>Cancel</Button>
+                <Button onClick={onClose}>{t('common.cancel')}</Button>
                 <Button
                   $primary
                   onClick={handleInputNext}
@@ -1082,11 +1059,11 @@ Instructions:
                   {serverAvailable ? (
                     <>
                       <span className="material-symbols-outlined">auto_awesome</span>
-                      Import with AI
+                      {t('aiImport.importWithAI')}
                     </>
                   ) : (
                     <>
-                      Next
+                      {t('common.next')}
                       <span className="material-symbols-outlined">arrow_forward</span>
                     </>
                   )}
@@ -1097,25 +1074,22 @@ Instructions:
 
           {step === 'prompt' && (
             <Section>
-              <Label>Copy this prompt to Claude or ChatGPT</Label>
-              <HelpText>
-                Copy the prompt below and paste it into your preferred AI assistant.
-                Then copy the JSON response back here.
-              </HelpText>
+              <Label>{t('aiImport.copyPromptLabel')}</Label>
+              <HelpText>{t('aiImport.copyPromptHelp')}</HelpText>
               <PromptBox>{fullPrompt}</PromptBox>
               <ButtonRow>
                 <Button onClick={() => setStep('input')}>
                   <span className="material-symbols-outlined">arrow_back</span>
-                  Back
+                  {t('common.back')}
                 </Button>
                 <Button $success onClick={handleCopyPrompt}>
                   <span className="material-symbols-outlined">
                     {copied ? 'check' : 'content_copy'}
                   </span>
-                  {copied ? 'Copied!' : 'Copy Prompt'}
+                  {copied ? t('aiImport.copied') : t('aiImport.copyPrompt')}
                 </Button>
                 <Button $primary onClick={() => setStep('result')}>
-                  I have the result
+                  {t('aiImport.haveResult')}
                   <span className="material-symbols-outlined">arrow_forward</span>
                 </Button>
               </ButtonRow>
@@ -1124,27 +1098,26 @@ Instructions:
 
           {step === 'result' && (
             <Section>
-              {/* If we came from server import, show preview directly */}
               {parsedRecipe ? (
                 <>
                   <SuccessMessage>
                     <span className="material-symbols-outlined">check_circle</span>
-                    Recipe parsed successfully!
+                    {t('aiImport.parseSuccess')}
                   </SuccessMessage>
                   <PreviewCard>
                     <PreviewTitle>{parsedRecipe.title}</PreviewTitle>
                     <PreviewMeta>
-                      <span>{parsedRecipe.prepTime + parsedRecipe.cookTime} min</span>
+                      <span>{parsedRecipe.prepTime + parsedRecipe.cookTime} {t('aiImport.min')}</span>
                       <span>{parsedRecipe.difficulty}</span>
-                      <span>{parsedRecipe.defaultServings} servings</span>
-                      <span>{parsedRecipe.ingredients.length} ingredients</span>
-                      <span>{parsedRecipe.steps.length} steps</span>
+                      <span>{parsedRecipe.defaultServings} {t('aiImport.servings')}</span>
+                      <span>{parsedRecipe.ingredients.length} {t('aiImport.ingredients')}</span>
+                      <span>{parsedRecipe.steps.length} {t('aiImport.steps')}</span>
                     </PreviewMeta>
                     <PreviewDescription>{parsedRecipe.description}</PreviewDescription>
                     {parsedRecipe.sourceUrl && (
                       <SourceUrlBadge>
                         <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>link</span>
-                        Source: <a href={ensureProtocol(parsedRecipe.sourceUrl)} target="_blank" rel="noopener noreferrer">
+                        {t('aiImport.source')}: <a href={ensureProtocol(parsedRecipe.sourceUrl)} target="_blank" rel="noopener noreferrer">
                           {getHostname(parsedRecipe.sourceUrl)}
                         </a>
                       </SourceUrlBadge>
@@ -1152,18 +1125,15 @@ Instructions:
                     {parsedRecipe.image && (
                       <SourceUrlBadge>
                         <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>image</span>
-                        Image included
+                        {t('aiImport.imageIncluded')}
                       </SourceUrlBadge>
                     )}
                   </PreviewCard>
                 </>
               ) : (
                 <>
-                  {/* Manual flow: paste JSON result */}
-                  <Label>Paste the JSON result</Label>
-                  <HelpText>
-                    Paste the JSON that the AI generated. We'll validate and import it.
-                  </HelpText>
+                  <Label>{t('aiImport.pasteJsonLabel')}</Label>
+                  <HelpText>{t('aiImport.pasteJsonHelp')}</HelpText>
                   <TextArea
                     value={jsonResult}
                     onChange={(e) => {
@@ -1171,22 +1141,16 @@ Instructions:
                       setError(null);
                       setParsedRecipe(null);
                     }}
-                    placeholder='Paste the JSON here...
-
-{
-  "title": "Recipe Name",
-  "description": "...",
-  ...
-}'
+                    placeholder={t('aiImport.pasteJsonPlaceholder')}
                   />
                   <ButtonRow>
                     <Button onClick={() => setStep('prompt')}>
                       <span className="material-symbols-outlined">arrow_back</span>
-                      Back
+                      {t('common.back')}
                     </Button>
                     <Button $primary onClick={handleParseJSON} disabled={!jsonResult.trim()}>
                       <span className="material-symbols-outlined">check_circle</span>
-                      Validate JSON
+                      {t('aiImport.validateJson')}
                     </Button>
                   </ButtonRow>
                 </>
@@ -1202,7 +1166,7 @@ Instructions:
           {step === 'result' && parsedRecipe && (
             <Button $success onClick={handleImport}>
               <span className="material-symbols-outlined">add</span>
-              Import Recipe
+              {t('aiImport.importRecipe')}
             </Button>
           )}
         </Footer>

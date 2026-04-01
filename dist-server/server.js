@@ -77,7 +77,7 @@ function generateOgTags(data) {
     const title = escapeHtml(data.title);
     const description = escapeHtml(data.description);
     const image = data.image || '';
-    const siteName = 'Prepd - Recipe Manager';
+    const siteName = 'Duckbook - Recipe Manager';
     const type = data.type || 'article';
     return `
     <!-- Open Graph / Facebook -->
@@ -132,7 +132,7 @@ app.get('/recipe/:shareId', async (req, res) => {
                 // Inject OG tags before </head>
                 html = html.replace('</head>', `${ogTags}\n  </head>`);
                 // Update the title
-                html = html.replace(/<title>.*?<\/title>/, `<title>${escapeHtml(recipe.title)} | Prepd</title>`);
+                html = html.replace(/<title>.*?<\/title>/, `<title>${escapeHtml(recipe.title)} | Duckbook</title>`);
                 res.send(html);
                 return;
             }
@@ -180,7 +180,7 @@ app.get('/u/:collectionId', async (req, res) => {
                 // Inject OG tags before </head>
                 html = html.replace('</head>', `${ogTags}\n  </head>`);
                 // Update the title
-                html = html.replace(/<title>.*?<\/title>/, `<title>${escapeHtml(title)} | Prepd</title>`);
+                html = html.replace(/<title>.*?<\/title>/, `<title>${escapeHtml(title)} | Duckbook</title>`);
                 res.send(html);
                 return;
             }
@@ -211,7 +211,7 @@ app.get('/shopping/join/:inviteCode', async (req, res) => {
             const indexPath = join(DIST_DIR, 'index.html');
             let html = readFileSync(indexPath, 'utf-8');
             const ownerName = list.ownerName || 'Someone';
-            const title = `Join "${list.name}" on Prepd`;
+            const title = `Join "${list.name}" on Duckbook`;
             const description = `${ownerName} invited you to collaborate on their shopping list "${list.name}".`;
             const ogTags = generateOgTags({
                 title,
@@ -220,7 +220,7 @@ app.get('/shopping/join/:inviteCode', async (req, res) => {
                 type: 'website',
             });
             html = html.replace('</head>', `${ogTags}\n  </head>`);
-            html = html.replace(/<title>.*?<\/title>/, `<title>${escapeHtml(title)} | Prepd</title>`);
+            html = html.replace(/<title>.*?<\/title>/, `<title>${escapeHtml(title)} | Duckbook</title>`);
             res.send(html);
             return;
         }
@@ -324,7 +324,7 @@ const CONVERSION_PROMPT = `You are a recipe data converter. Convert the provided
 3. Times (prepTime, cookTime) are in MINUTES
 4. Quantity must be a number (use 0.5 for "half", 0.25 for "quarter")
 5. Keep step descriptions clear and actionable
-6. Use "en" for English recipes, "he" for Hebrew recipes
+6. Use "en" for English recipes, "he" for Hebrew recipes. IMPORTANT: Keep all text (title, description, ingredients, steps, tips) in the ORIGINAL language of the recipe. Do NOT translate
 7. Estimate nutrition if not provided (per serving)
 8. Tags should be lowercase, no spaces (use hyphens if needed)
 9. Difficulty: easy (under 30 min, simple techniques), medium (30-60 min or moderate skill), hard (60+ min or advanced techniques)
@@ -471,7 +471,7 @@ app.post('/api/import-recipe', async (req, res) => {
         // Call Gemini API
         const geminiController = new AbortController();
         const geminiTimeout = setTimeout(() => geminiController.abort(), 30000);
-        const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

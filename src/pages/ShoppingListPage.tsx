@@ -1,25 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { AppHeader } from '../components/AppHeader';
 import { SEO } from '../components/SEO';
 import { useRecipeStore } from '../stores/recipeStore';
 import { useShoppingListStore } from '../stores/shoppingListStore';
 import { useAuth } from '../firebase';
-import { UserMenu } from '../components/UserMenu';
 import { QuickAddInput, CategorySection, FrequentlyBoughtPanel, ListSwitcher, ListSettingsPanel, PresenceAvatars } from '../components/shopping';
 import { CostSplitBalanceView } from '../components/shopping/CostSplitBalanceView';
 import type { ShoppingItem, IngredientCategory } from '../types/Recipe';
 import { CATEGORY_ORDER } from '../types/Recipe';
 import { getCurrencyConfig, formatPrice } from '../types/ShoppingList';
+import { colors as themeColors, fonts } from '../styles/theme';
 
-// Color palette (matching Duckbook design)
 const colors = {
-  primary: '#2C3E50',
-  primaryDark: '#1a252f',
-  backgroundLight: '#F0F4F8',
-  surface: '#ffffff',
-  textMain: '#333333',
-  textMuted: '#64748b',
+  ...themeColors,
   green500: '#22c55e',
   orange100: '#ffedd5',
   orange600: '#ea580c',
@@ -27,145 +22,10 @@ const colors = {
 
 const PageContainer = styled.div`
   min-height: 100vh;
-  background: ${colors.backgroundLight};
+  background: ${colors.background};
   display: flex;
   flex-direction: column;
-  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
-`;
-
-const Header = styled.header`
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  background: rgba(240, 244, 248, 0.95);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(44, 62, 80, 0.1);
-  padding: 12px 16px;
-
-  @media (min-width: 768px) {
-    padding: 16px 24px;
-  }
-`;
-
-const HeaderContent = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const LogoGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-`;
-
-const LogoIcon = styled.div`
-  width: 32px;
-  height: 32px;
-  background: ${colors.primary};
-  color: white;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(44, 62, 80, 0.2);
-
-  .material-symbols-outlined {
-    font-size: 20px;
-  }
-`;
-
-const LogoText = styled.h2`
-  font-size: 20px;
-  font-weight: 700;
-  color: ${colors.textMain};
-  font-family: 'Playfair Display', Georgia, serif;
-
-  @media (max-width: 480px) {
-    display: none;
-  }
-`;
-
-const Nav = styled.nav`
-  display: none;
-  align-items: center;
-  gap: 32px;
-
-  @media (min-width: 768px) {
-    display: flex;
-  }
-`;
-
-const NavLink = styled.a<{ $active?: boolean }>`
-  font-size: 14px;
-  font-weight: 700;
-  color: ${(props) => (props.$active ? colors.primary : colors.textMuted)};
-  text-decoration: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  transition: color 0.15s;
-
-  &:hover {
-    color: ${colors.primary};
-  }
-`;
-
-const ActiveDot = styled.div`
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: ${colors.primary};
-`;
-
-const HeaderRight = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-`;
-
-const MobileMenuButton = styled.button`
-  display: flex;
-  color: ${colors.textMain};
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-
-  @media (min-width: 768px) {
-    display: none;
-  }
-`;
-
-const MobileNav = styled.nav<{ $open: boolean }>`
-  display: ${({ $open }) => ($open ? 'flex' : 'none')};
-  flex-direction: column;
-  background: ${colors.surface};
-  border-top: 1px solid rgba(44, 62, 80, 0.1);
-  padding: 8px 0;
-
-  @media (min-width: 768px) {
-    display: none;
-  }
-`;
-
-const MobileNavLink = styled.a<{ $active?: boolean }>`
-  padding: 14px 24px;
-  font-size: 15px;
-  font-weight: ${({ $active }) => ($active ? '600' : '500')};
-  color: ${({ $active }) => ($active ? colors.primary : colors.textMain)};
-  text-decoration: none;
-  cursor: pointer;
-  border-left: 3px solid ${({ $active }) => ($active ? colors.primary : 'transparent')};
-
-  &:hover {
-    background: rgba(44, 62, 80, 0.04);
-    color: ${colors.primary};
-  }
+  font-family: ${fonts.body};
 `;
 
 const MainContent = styled.main`
@@ -456,7 +316,6 @@ const SettleUpButton = styled.button`
 export function ShoppingListPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showSettleUp, setShowSettleUp] = useState(false);
   const [hideDone, setHideDone] = useState(false);
@@ -557,41 +416,7 @@ export function ShoppingListPage() {
         keywords="shopping list, grocery list, recipes"
       />
 
-      <Header>
-        <HeaderContent>
-          <LogoGroup onClick={() => navigate('/')}>
-            <LogoIcon>
-              <span className="material-symbols-outlined">soup_kitchen</span>
-            </LogoIcon>
-            <LogoText>Duckbook</LogoText>
-          </LogoGroup>
-
-          <Nav>
-            <NavLink onClick={() => navigate('/recipes')}>Recipes</NavLink>
-            <NavLink onClick={() => navigate('/meal-plan')}>Meal Plan</NavLink>
-            <NavLink $active>
-              Shopping
-              <ActiveDot />
-            </NavLink>
-            <NavLink onClick={() => navigate('/collections')}>Collections</NavLink>
-            <NavLink onClick={() => navigate('/discover')}>Discover</NavLink>
-          </Nav>
-
-          <HeaderRight>
-            <MobileMenuButton onClick={() => setIsMobileNavOpen(o => !o)}>
-              <span className="material-symbols-outlined">{isMobileNavOpen ? 'close' : 'menu'}</span>
-            </MobileMenuButton>
-            <UserMenu />
-          </HeaderRight>
-        </HeaderContent>
-        <MobileNav $open={isMobileNavOpen}>
-          <MobileNavLink onClick={() => { navigate('/recipes'); setIsMobileNavOpen(false); }}>Recipes</MobileNavLink>
-          <MobileNavLink onClick={() => { navigate('/meal-plan'); setIsMobileNavOpen(false); }}>Meal Plan</MobileNavLink>
-          <MobileNavLink $active>Shopping</MobileNavLink>
-          <MobileNavLink onClick={() => { navigate('/collections'); setIsMobileNavOpen(false); }}>Collections</MobileNavLink>
-          <MobileNavLink onClick={() => { navigate('/discover'); setIsMobileNavOpen(false); }}>Discover</MobileNavLink>
-        </MobileNav>
-      </Header>
+      <AppHeader activePage="shopping" />
 
       <MainContent>
         <PageHeader>

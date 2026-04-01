@@ -3,165 +3,22 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 import { useLanguage } from '../i18n/useLanguage';
-import LanguageSelector from '../components/LanguageSelector';
+import { AppHeader } from '../components/AppHeader';
 import { SEO } from '../components/SEO';
 import { useCollectionsStore } from '../stores/collectionsStore';
 import { useRecipeStore } from '../stores/recipeStore';
 import { useAuth } from '../firebase';
-import { UserMenu } from '../components/UserMenu';
 import type { Collection, Recipe, Visibility } from '../types/Recipe';
 import { migrateVisibility } from '../types/Recipe';
-
-const colors = {
-  primary: '#2C3E50',
-  primaryDark: '#1a252f',
-  backgroundLight: '#F0F4F8',
-  surface: '#ffffff',
-  textMain: '#333333',
-  textMuted: '#64748b',
-};
+import { colors, fonts } from '../styles/theme';
 
 const PageContainer = styled.div`
   min-height: 100vh;
-  background: ${colors.backgroundLight};
+  background: ${colors.background};
   display: flex;
   flex-direction: column;
-  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: ${fonts.body};
 `;
-
-const Header = styled.header`
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  width: 100%;
-  background: rgba(240, 244, 248, 0.9);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(44, 62, 80, 0.1);
-  transition: all 0.3s;
-`;
-
-const HeaderContent = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 16px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-
-  @media (min-width: 768px) {
-    padding: 16px 32px;
-  }
-`;
-
-const LogoGroup = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: transform 0.2s;
-
-  &:hover .logo-icon {
-    transform: rotate(6deg);
-  }
-`;
-
-const LogoIcon = styled.div`
-  background: ${colors.primary};
-  color: white;
-  padding: 6px;
-  border-radius: 8px;
-  transform: rotate(3deg);
-  transition: transform 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  .material-symbols-outlined {
-    font-size: 20px;
-  }
-`;
-
-const LogoText = styled.h1`
-  margin: 0;
-  font-size: 24px;
-  font-weight: 700;
-  color: ${colors.primary};
-  font-family: 'Playfair Display', Georgia, serif;
-  letter-spacing: -0.02em;
-`;
-
-const Nav = styled.nav`
-  display: none;
-  align-items: center;
-  gap: 32px;
-
-  @media (min-width: 768px) {
-    display: flex;
-  }
-`;
-
-const NavLink = styled.a<{ $active?: boolean }>`
-  font-size: 14px;
-  font-weight: ${(props) => (props.$active ? '600' : '500')};
-  color: ${(props) => (props.$active ? colors.primary : colors.textMain)};
-  text-decoration: none;
-  cursor: pointer;
-  transition: color 0.15s;
-  padding-bottom: 4px;
-  border-bottom: 2px solid ${(props) => (props.$active ? colors.primary : 'transparent')};
-
-  &:hover {
-    color: ${colors.primary};
-  }
-`;
-
-const HeaderRight = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 16px;
-`;
-
-const MobileMenuButton = styled.button`
-  display: flex;
-  color: ${colors.textMain};
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-
-  @media (min-width: 768px) {
-    display: none;
-  }
-`;
-
-const MobileNav = styled.nav<{ $open: boolean }>`
-  display: ${({ $open }) => ($open ? 'flex' : 'none')};
-  flex-direction: column;
-  background: ${colors.surface};
-  border-top: 1px solid rgba(44, 62, 80, 0.1);
-  padding: 8px 0;
-
-  @media (min-width: 768px) {
-    display: none;
-  }
-`;
-
-const MobileNavLink = styled.a<{ $active?: boolean }>`
-  padding: 14px 24px;
-  font-size: 15px;
-  font-weight: ${({ $active }) => ($active ? '600' : '500')};
-  color: ${({ $active }) => ($active ? colors.primary : colors.textMain)};
-  text-decoration: none;
-  cursor: pointer;
-  border-left: 3px solid ${({ $active }) => ($active ? colors.primary : 'transparent')};
-
-  &:hover {
-    background: rgba(44, 62, 80, 0.04);
-    color: ${colors.primary};
-  }
-`;
-
 
 const MainContent = styled.main`
   flex: 1;
@@ -225,7 +82,7 @@ const CollectionCover = styled.div<{ $image?: string }>`
   background: ${(props) =>
     props.$image
       ? `url("${props.$image.replace(/"/g, '%22')}") center/cover`
-      : `linear-gradient(135deg, ${colors.backgroundLight} 0%, #dde4ed 100%)`};
+      : `linear-gradient(135deg, ${colors.background} 0%, #dde4ed 100%)`};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -501,7 +358,7 @@ const Button = styled.button<{ $primary?: boolean }>`
     border: 1px solid #e0e0e0;
 
     &:hover:not(:disabled) {
-      background: ${colors.backgroundLight};
+      background: ${colors.background};
     }
   `}
 
@@ -558,8 +415,6 @@ export function CollectionsPage() {
   const [newName, setNewName] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-
   useEffect(() => {
     let cleanup: (() => void) | undefined;
 
@@ -590,8 +445,6 @@ export function CollectionsPage() {
     }
   };
 
-  const handleGoHome = () => navigate('/');
-
   return (
     <PageContainer style={{ direction: isRTL ? 'rtl' : 'ltr' }}>
       <SEO
@@ -601,39 +454,7 @@ export function CollectionsPage() {
         keywords="recipe collections, recipe organization, favorites"
       />
 
-      <Header>
-        <HeaderContent>
-          <LogoGroup onClick={handleGoHome}>
-            <LogoIcon className="logo-icon">
-              <span className="material-symbols-outlined">restaurant_menu</span>
-            </LogoIcon>
-            <LogoText>Duckbook</LogoText>
-          </LogoGroup>
-
-          <Nav>
-            <NavLink onClick={() => navigate('/recipes')}>{t('nav.recipes')}</NavLink>
-            <NavLink onClick={() => navigate('/meal-plan')}>{t('nav.mealPlan')}</NavLink>
-            <NavLink onClick={() => navigate('/shopping')}>{t('nav.shopping')}</NavLink>
-            <NavLink $active>{t('nav.collections')}</NavLink>
-            <NavLink onClick={() => navigate('/discover')}>{t('discover.title')}</NavLink>
-          </Nav>
-
-          <HeaderRight>
-            <LanguageSelector />
-            <MobileMenuButton onClick={() => setIsMobileNavOpen(o => !o)}>
-              <span className="material-symbols-outlined">{isMobileNavOpen ? 'close' : 'menu'}</span>
-            </MobileMenuButton>
-            <UserMenu />
-          </HeaderRight>
-        </HeaderContent>
-        <MobileNav $open={isMobileNavOpen}>
-          <MobileNavLink onClick={() => { navigate('/recipes'); setIsMobileNavOpen(false); }}>{t('nav.recipes')}</MobileNavLink>
-          <MobileNavLink onClick={() => { navigate('/meal-plan'); setIsMobileNavOpen(false); }}>{t('nav.mealPlan')}</MobileNavLink>
-          <MobileNavLink onClick={() => { navigate('/shopping'); setIsMobileNavOpen(false); }}>{t('nav.shopping')}</MobileNavLink>
-          <MobileNavLink $active>{t('nav.collections')}</MobileNavLink>
-          <MobileNavLink onClick={() => { navigate('/discover'); setIsMobileNavOpen(false); }}>{t('discover.title')}</MobileNavLink>
-        </MobileNav>
-      </Header>
+      <AppHeader activePage="collections" />
 
       <MainContent>
         <PageHeader>
