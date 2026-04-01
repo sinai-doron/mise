@@ -376,7 +376,7 @@ const CONVERSION_PROMPT = `You are a recipe data converter. Convert the provided
 3. Times (prepTime, cookTime) are in MINUTES
 4. Quantity must be a number (use 0.5 for "half", 0.25 for "quarter")
 5. Keep step descriptions clear and actionable
-6. Use "en" for English recipes, "he" for Hebrew recipes
+6. Use "en" for English recipes, "he" for Hebrew recipes. IMPORTANT: Keep all text (title, description, ingredients, steps, tips) in the ORIGINAL language of the recipe. Do NOT translate
 7. Estimate nutrition if not provided (per serving)
 8. Tags should be lowercase, no spaces (use hyphens if needed)
 9. Difficulty: easy (under 30 min, simple techniques), medium (30-60 min or moderate skill), hard (60+ min or advanced techniques)
