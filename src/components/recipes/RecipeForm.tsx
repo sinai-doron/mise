@@ -299,7 +299,7 @@ interface StepFormData {
 export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSave, onClose }) => {
   const { t } = useTranslation();
   const [title, setTitle] = useState(recipe?.title ?? '');
-  const [description, setDescription] = useState(recipe?.description ?? '');
+  const [description, setDescription] = useState(recipe?.aboutDish || recipe?.description || '');
   const [image, setImage] = useState(recipe?.image ?? '');
   const [prepTime, setPrepTime] = useState(recipe?.prepTime?.toString() ?? '15');
   const [cookTime, setCookTime] = useState(recipe?.cookTime?.toString() ?? '30');
@@ -390,6 +390,7 @@ export const RecipeForm: React.FC<RecipeFormProps> = ({ recipe, onSave, onClose 
     onSave({
       title: title.trim(),
       description: description.trim(),
+      aboutDish: description.trim() || undefined,
       image: image || undefined,
       prepTime: parseInt(prepTime) || 15,
       cookTime: parseInt(cookTime) || 30,

@@ -278,6 +278,8 @@ export function PublicRecipePage() {
   const { user } = useAuth();
   const addRecipe = useRecipeStore((state) => state.addRecipe);
   const userRecipes = useRecipeStore((state) => state.recipes);
+  const initializeFirebaseSync = useRecipeStore((state) => state.initializeFirebaseSync);
+  const hasInitialized = useRecipeStore((state) => state.hasInitialized);
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
@@ -287,16 +289,23 @@ export function PublicRecipePage() {
 
   const rtl = recipe ? isRTL(recipe.language as RecipeLanguage) : false;
 
+  // If logged in, initialize store so we can check recipe ownership
+  useEffect(() => {
+    if (user && !hasInitialized) {
+      initializeFirebaseSync();
+    }
+  }, [user, hasInitialized, initializeFirebaseSync]);
+
   // If the logged-in user owns this recipe, redirect to the in-app view
   useEffect(() => {
-    if (user && id && userRecipes.length > 0) {
+    if (user && id && hasInitialized && userRecipes.length > 0) {
       const ownRecipe = userRecipes.find((r) => r.id === id || r.shareId === id);
       if (ownRecipe) {
         navigate(`/recipes/${ownRecipe.id}`, { replace: true });
         return;
       }
     }
-  }, [user, id, userRecipes, navigate]);
+  }, [user, id, userRecipes, hasInitialized, navigate]);
 
   useEffect(() => {
     const fetchRecipe = async () => {

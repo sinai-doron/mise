@@ -102,39 +102,40 @@ function generateOgTags(data) {
 app.get('/recipe/:shareId', async (req, res) => {
     const { shareId } = req.params;
     const userAgent = req.headers['user-agent'] || '';
-    // Always fetch recipe data for OG tags (even for non-crawlers, we want proper meta)
+    // Fetch recipe data for OG tags using the accessibleRecipes index
     try {
-        const docRef = db.collection('sharedRecipes').doc(shareId);
-        const docSnap = await docRef.get();
-        if (docSnap.exists) {
-            const recipe = docSnap.data();
-            // Check if recipe is deleted (sharing disabled)
-            if (recipe?.isDeleted) {
-                // For crawlers, return 404-like page
-                if (isCrawler(userAgent)) {
-                    res.status(404).send('<html><head><title>Recipe not found</title></head><body>Recipe not found</body></html>');
+        // Look up the recipe in the accessibleRecipes index first, then publicRecipes as fallback
+        let ownerId = null;
+        const accessibleDoc = await db.collection('accessibleRecipes').doc(shareId).get();
+        if (accessibleDoc.exists) {
+            ownerId = accessibleDoc.data()?.ownerId;
+        }
+        else {
+            const publicDoc = await db.collection('publicRecipes').doc(shareId).get();
+            if (publicDoc.exists) {
+                ownerId = publicDoc.data()?.ownerId;
+            }
+        }
+        if (ownerId) {
+            // Fetch the actual recipe from the owner's collection
+            const recipeDoc = await db.collection('users').doc(ownerId).collection('recipes').doc(shareId).get();
+            if (recipeDoc.exists) {
+                const recipe = recipeDoc.data();
+                if (recipe) {
+                    const indexPath = join(DIST_DIR, 'index.html');
+                    let html = readFileSync(indexPath, 'utf-8');
+                    const ogTags = generateOgTags({
+                        title: recipe.title,
+                        description: recipe.description,
+                        url: `https://getprepd.app/recipe/${shareId}`,
+                        image: recipe.image,
+                        type: 'article',
+                    });
+                    html = html.replace('</head>', `${ogTags}\n  </head>`);
+                    html = html.replace(/<title>.*?<\/title>/, `<title>${escapeHtml(recipe.title)} | Duckbook</title>`);
+                    res.send(html);
                     return;
                 }
-                // For users, let the SPA handle it
-            }
-            else if (recipe) {
-                // Read the index.html template
-                const indexPath = join(DIST_DIR, 'index.html');
-                let html = readFileSync(indexPath, 'utf-8');
-                // Generate and inject OG tags
-                const ogTags = generateOgTags({
-                    title: recipe.title,
-                    description: recipe.description,
-                    url: `https://getprepd.app/recipe/${shareId}`,
-                    image: recipe.image,
-                    type: 'article',
-                });
-                // Inject OG tags before </head>
-                html = html.replace('</head>', `${ogTags}\n  </head>`);
-                // Update the title
-                html = html.replace(/<title>.*?<\/title>/, `<title>${escapeHtml(recipe.title)} | Duckbook</title>`);
-                res.send(html);
-                return;
             }
         }
         // Recipe not found or deleted - serve default HTML for SPA to handle
